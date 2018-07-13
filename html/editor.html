@@ -1,0 +1,886 @@
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script src="/src/ace.js" type="text/javascript" charset="utf-8"></script>
+	<script src="https://www.gstatic.com/firebasejs/4.8.1/firebase.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<script src="/src/mode-javascript.js" type="text/javascript" charset="utf-8"></script>
+	<script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
+</head>
+<html>
+	<body>
+		<a href="/" style="margin-right: 10px; margin-left: 5px;"><img id="logo" title="table of contents" src="/welogo.png"></a>
+		<div id="userdrop" class="dropdown">
+			<button id="userbutton" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Sign In</button>
+			<ul id="useroptions" class="dropdown-menu dropdown-menu-right">
+				<li><a name='settings' href="javascript:;">Settings</a></li>
+				<li><a name='zip' href="javascript:;">Zip All</a></li>
+				<li><a style="color:lightgrey" name='about' href="javascript:;">About</a></li>
+				<li><a name='logout' href="javascript:;">Logout</a></li>
+			</ul>
+		</div>
+		<div id="projectdrop" class="dropdown">
+			<button id="projectbutton" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Project</button>
+			<ul id="projectoptions" class="dropdown-menu">
+				<li><a name='new' href="javascript:;">New Project +</a></li>
+				<li><a name='open' href="javascript:;">Open Project ></a></li>
+				<li><a name='rename' href="javascript:;">Rename Project</a></li>
+				<li><a style="color:lightgrey" name='clone' href="javascript:;">Clone Project</a></li>
+				<li><a name='upload' href="javascript:;">Upload File</a></li>
+				<li><a name='zip' href="javascript:;">Download As Zip</a></li>
+				<li><a style="color:red" name='archive' href="javascript:;">Archive Project</a></li>
+			</ul>
+		</div>
+		<div class='onoff'>
+			<div>Read Only: <span id='readonly' class="glyphicon glyphicon-pencil"></span></div>
+			<div>Public: <span id='ispublic' class="glyphicon glyphicon-globe"></span></div>
+		</div>
+		<ul id="projectlist" class="dropdown-menu"></ul>
+		<ul id="filelist" class="dropdown-menu"></ul>
+		<ul id="adminlist" class="dropdown-menu dropdown-menu-right"></ul>
+		<div class='viewchange' id='open'>
+			<a id='openlink' target="_blank" href=''>&#11008 </a>
+		</div>
+		<div class='viewchange' id='close'>x</div>
+		<div class='viewchange' id='openview'>&#9998;</div>
+		<div class='row'>	
+			<div class='column'>
+				<div class='tabs'>
+					<button class="tab" id='_html' style="box-shadow:#505050 1px -1px 1px 0px; border-bottom:none; z-index: 5;">html</button><!--
+					--><button class="tab"  id='_addtab'>...</button>
+				</div>
+				<div id="editor"></div>
+			</div>
+			<div class='column'>
+				<iframe id='viewframe' src=''></iframe>
+			</div>
+		</div>
+		<form id="fileform">
+			<input id="fileupload" type="file" name="file" data-url="/upload">
+		</form>
+	</body>
+	<style>
+		#fileform {
+			display: none;
+		}
+		#readonly {
+			color: lightgrey;
+		}
+		#ispublic {
+			color: lightgrey;
+		}
+		.glyphicon:hover {
+			display: inline;
+			border-color: lightblue;
+			border-style: solid;
+			border-width: 1px;
+			cursor: pointer;
+		}
+		.toggle.btn {
+			height: 20px;
+		}
+		.onoff {
+			display: inline;
+			position: absolute;
+			top: 0;
+			left: 175px;
+		}
+		#open {
+			margin-top: 11px;
+			position: absolute;
+			right: 14px;
+			z-index: 10;
+		}
+		#close {
+			color: red;
+			margin-top: 10px;
+			position: absolute;
+			z-index: 10;
+			right: 4px;
+		}
+		#openview {
+			display: none;
+			margin-top: 10px;
+			position: absolute;
+			z-index: 10;
+			right: 4px;
+		}
+		#openview:hover {
+			cursor: pointer;
+		}
+		#close:hover {
+			cursor: pointer;
+		}
+		.tabx {
+			z-index: 50;
+			background-color: #ff6d6d;
+			width: 10px;
+			height: 14px;
+			position: absolute;
+			color: white;
+			font-size: 12;
+			margin: auto;
+			top: -1;
+			right: -1;
+			opacity: .7;
+		}
+		.tabx:hover {
+			opacity: .9;			
+			background-color: #fd2b2b;
+		}
+		.tab {
+			outline:none;
+			vertical-align: middle;
+			position:relative;
+			white-space: normal;
+			border-color: #0000002e;
+			border-width: 1px;
+			border-style: solid;
+			font-weight: 550;
+			font-size: 14;
+			padding: 12px;
+			padding-bottom: 30px;
+			background-color: rgb(249, 249, 249);
+			height: 30px;
+			min-width: 45px;
+		}
+		.tab:hover {
+			background-color: rgb(216, 216, 216);
+		}
+		#adminlist {
+			top: 34px;
+			right: 120px;
+			position: absolute;
+		}
+		#projectdrop {
+			position: absolute;
+			margin-top: -30px;
+			left: 80px;
+		}
+		#projectlist, #filelist {
+			top: 0;
+			max-height: 195px;
+			position: absolute;
+			overflow: auto;
+		}
+		#projectlist {
+			margin-top: 35px;		
+		}
+		#filelist {
+			margin-top: 42px;
+		}
+		#userdrop {
+			float: right;
+		}
+		.dropdown-menu {
+			min-width: 50px;
+		}
+		#logo {
+			width: 70px;
+		}
+		#editor {
+			z-index: 10px;
+			height: 100%;
+			align: bottom;
+			right: 0;
+			bottom: 0;
+			left: 0;
+		}
+		#viewframe {
+			position: absolute;
+			border-top: none;
+			border-bottom: 1px solid #F9F9F9;
+			border-right: 1px solid #F9F9F9;
+			border-left: 1px solid #F9F9F9;
+		}
+		.row {
+			display: flex;
+			margin-top: 10px;
+			border-top:1pt solid #F9F9F9;
+			margin-right: 0;
+			margin-left: 0;
+		}
+	</style>
+	<script>
+		$('body').css({'height': (window.innerHeight)});
+		$('#projectlist').css({'left': ($('#projectoptions').width() + $('#logo').width() + 12)});
+
+		console.log()
+		
+		$(window).on('resize', function(){ 
+			$('body').css({'height': (window.innerHeight)});
+			alignlists();
+			resizeframes(g.query)
+		});
+		
+		window.onclick = function(event) {
+			//console.log(event)
+			//console.log($('#filelist').css("display"))
+			if (event.target.name != "open" && $('#projectlist').css("display") != 'none') {
+				$('#projectlist').hide();
+			}
+			if (event.target.id != "_addtab" && $('#filelist').css("display") != 'none') {
+				$('#filelist').hide();
+			}
+			if (event.target.name != "makeme" && $('#adminlist').css("display") != 'none') {
+				$('#adminlist').hide();
+			}
+		}
+		
+		function alignlists() {		
+			$('#projectlist').css({'left': ($('#projectoptions').width() + $('#logo').width() + 12)});
+			let tablist = [];
+			let change = 0;
+			$('.tab').each((i, el) => tablist.push($(el).outerWidth()));
+			//console.log(tablist);
+			for (let i = 0; i < tablist.length; i++) {
+				change = change + tablist[i];
+			}
+			//console.log(change);
+			$('#filelist').css({'left': change});
+		}
+		
+		function resizeframes(query) {
+			//console.log(query)
+			let change = ($('#userbutton').height() + $('.tabs').height() + 40)
+			if (query == '?run=edit') {
+				$('.row').css('border-top', '1pt solid #F9F9F9');
+				$('#viewframe').css({'border-left': '1px solid #F9F9F9', 'height': (window.innerHeight - change + $('.tabs').height()), 'width': window.innerWidth/2, 'left': window.innerWidth/2});
+				$('#editor').css({'height': (window.innerHeight - change), 'width': window.innerWidth/2});			
+			}
+			if (query == '?run=editor') {
+				$('.row').css('border-top', 'none');
+				$('#viewframe').css({'height': (window.innerHeight - change + $('.tabs').height()), 'width': 0, 'left': window.innerWidth});
+				$('#editor').css({'height': (window.innerHeight - change), 'width': window.innerWidth});			
+			}
+		}
+
+		// Initialize Firebase
+		var config = {
+			apiKey: "AIzaSyCtsK9Nx0Fh7YzwZ8r7V2oXw_cB0XQG4z8",
+			authDomain: "webedit-204210.firebaseapp.com",
+			databaseURL: "https://webedit-204210.firebaseio.com",
+			projectId: "webedit-204210",
+			storageBucket: "webedit-204210.appspot.com",
+			messagingSenderId: "1059738201826"
+		};
+		firebase.initializeApp(config);
+		const admin = firebase.database().ref().child('admin');
+		const cookieToUidref = firebase.database().ref().child('cookieToUid');
+		const root = firebase.database().ref();
+		const projects = firebase.database().ref().child('projects');
+		
+		var usersettingsref;
+		var projectsettingsref;
+		let settings = {global: {},
+				user: {},
+				project: {}}
+		settings.global.ref = firebase.database().ref().child('projects/global/-LFApck9n3U1YdCYWKEA/files/-LFApgX73wXqJW4zMz4i');
+		let g = {};		
+		
+		
+		function parsesettings(settings) {
+			//console.log(settings)
+			let split = settings.split(/\r\n|\r|\n/);
+			let values = {};
+			for (let i = 0; i < split.length; i++) {
+				if (!split[i].includes('#') && split[i] != "") {
+					let object = split[i].split(': ');
+					let name = object[0]
+					let value = object[1]
+					values[name] = value;
+				}
+			}
+			return values;
+		}
+		
+		let editor = ace.edit('editor');
+		editor.setTheme("ace/theme/dawn");
+		editor.getSession().setOption("ace/mode/javascript");
+		stateObj = {foo: 'projs'};
+		
+		function getCook(cookiename) {
+			var cookiestring = RegExp(""+cookiename+"[^;]+").exec(document.cookie);
+			return decodeURIComponent(!!cookiestring ? cookiestring.toString().replace(/^[^=]+./,"") : "");
+		}
+
+		function setEditor(contents) {
+			editor.setValue(contents);
+			editor.gotoLine(0, 0);
+			editor.focus();
+		}
+		
+		function nametoid(ref, uid, name) {
+			//console.log(uid, name);
+			return ref.child(uid).orderByChild('name').equalTo(name).once('value')
+			.then(function (snapshot) {
+				let key;
+				snapshot.forEach(function (snap) {
+					if (snap.val().settings) {
+						if (snap.val().settings.archived) return;
+					}
+					//console.log('key', snap.key)
+					key = snap.key;
+				});
+				return key;
+			});
+		}		
+		
+		function nametoref(ref, uid, name) {
+			//console.log(uid, name);
+			return ref.child(uid).orderByChild('name').equalTo(name).once('value')
+			.then(function (snapshot) {
+				let key;
+				snapshot.forEach(function (snap) {
+					if (snap.val().settings) {
+						if (snap.val().settings.archived) return;
+					}
+					//console.log('key', snap.key)
+					key = snap.ref;
+				});
+				if (!key) {
+					throw 'ref not found';
+				}
+				return key;
+			});
+		}		
+		
+		function listentosettings(projects, uid, project, key) {
+			nametoref(projects, uid, project)
+			.then(function(projectref) {
+				return nametoref(projectref, 'files', '.settings');
+			})
+			.then(function(settingsref) {
+				//console.log('settingsid', settingsref);
+				settingsref.on('value', function(snapshot) {
+					if (snapshot.val()) {
+						settings[key] = parsesettings(snapshot.val().contents);
+					} else {
+						throw 'ref not found';
+					}
+					mergesettings();
+				});
+			})
+			.catch(function() {
+				settings[key] = {'setting': false};
+				mergesettings();				
+			});			
+		}
+		
+		settings.firsttime = true;		
+		function mergesettings() {
+			if (!settings.firsttime || (settings.global && settings.user && settings.project)) {
+				settings.settings = $.extend({}, settings.global, settings.user, settings.project);
+				settings.firstime = false;
+				render();
+			}
+		}
+		
+		function render() {
+			//console.log(settings);
+			if (settings.settings.tabColor) {
+				$('.tab').css('background-color', settings.settings.tabColor);			
+			} else $('.tab').css('background-color', 'rgb(249, 249, 249)');
+			if (settings.settings.tabTextColor) {
+				$('.tab').css('color', settings.settings.tabTextColor);
+			} else $('.tab').css('color', 'black');
+		}
+		
+		function findprojectbooleans(ref) {
+			ref.child('settings').on('value', function(snapshot) {
+				g.settings = snapshot.val();
+				console.log(g.settings)
+				if (g.settings.ispublic) {
+					$('#ispublic').css('color', 'blue');
+				} else {
+					$('#ispublic').css('color', 'lightgrey');
+				}
+				if (g.settings.readonly) {
+					$('#readonly').css('color', 'blue');
+					editor.renderer.$cursorLayer.element.style.display = "none";
+					editor.setOptions({
+						readOnly: true,
+						highlightActiveLine: false,
+						highlightGutterLine: false
+					})
+				} else {
+					$('#readonly').css('color', 'lightgrey');				
+					editor.renderer.$cursorLayer.element.style.display = "";
+					editor.setOptions({
+						readOnly: false,
+						highlightActiveLine: true,
+						highlightGutterLine: true
+					})
+				}
+			});
+		}
+		
+		$('.onoff').on('click', 'span', function(event) {
+			console.log(event.target.id);
+			if (g.settings[event.target.id]) {
+				g.currentprojectref.child('settings').child(event.target.id).set(false);
+			} else {			
+				g.currentprojectref.child('settings').child(event.target.id).set(true);
+			}
+		});
+		
+		g.firsttime = true;
+		$(function () {
+			//console.log(window.location);
+			[g.host, g.uid, g.projectname, g.filename] = window.location.pathname.split('/');
+			$('#openlink').attr("href", window.location.pathname + '?run=viewer');
+			g.query = window.location.search;
+			listentosettings(projects, 'global', 'global', 'global')
+			listentosettings(projects, g.uid, 'global', 'user')
+			listentosettings(projects, g.uid, g.projectname, 'project')
+			//console.log(settings);
+			if (g.query == "?run=editor") {
+				$('#close').hide();
+				$('#open').hide();
+				$('#openview').show();
+			}
+			g.activetab = '_html'
+			$('#_html').html(g.projectname);
+			resizeframes(g.query);
+			alignlists();
+			loadfromfirebase(projects, g.uid, $('#projectlist'));
+			nametoid(projects, g.uid, g.projectname)
+			.then(function(projectId) {
+				g.projectid = projectId;
+				g.currentprojectref = firebase.database().ref().child('projects/' + g.uid + '/' + g.projectid);
+				listfiles(g.currentprojectref, 'files', $('#filelist'));
+				g.currentprojectref.on('value', function (snapshot) {
+					if (g.firsttime) {
+						delete g.firsttime;
+						g.contents = snapshot.val().contents;
+						//findinlinetabs(g.contents);
+						setEditor(g.contents);
+						findprojectbooleans(g.currentprojectref);
+						console.log('runfirst')
+						runproject(g.uid, g.projectname);
+					} else if (snapshot.val().contents != editor.getValue() && g.activetab == '_html') {
+						setEditor(snapshot.val().contents);
+						$('#viewframe')[0].contentWindow.location.reload();	
+					}
+				});
+			});
+		});		
+		
+		function loadadmins(uid) {
+			root.child('admin').child('admins').once('value', function (snapshot) {
+				g.admins = snapshot.val();
+				checkadminstatus(uid);
+			});
+		}
+		
+		function checkadminstatus(uid) {
+			if (g.admins[uid]) {
+				$('#useroptions').prepend('<li><a name="makeme" href="javascript:;">Change User</a></lis>')
+				listadmins(projects);
+			}
+		}
+		
+		function listadmins(ref) {
+			ref.on('child_added', function(snapshot) {
+				//console.log(snapshot.val().email, snapshot.key);
+				let html = ('<li><a id="' + snapshot.key + '" href="javascript:;">' + snapshot.val().email + '</a></li>');
+				$('#adminlist').append(html);
+			});
+		}
+		
+		function loadprojects(ref, uid, list) {
+			loadfromfirebase(projects, g.uid, $('#projectlist'));
+		}
+		
+		function listfiles(ref, uid, list) {
+			loadfromfirebase(g.currentprojectref, 'files', $('#filelist'));
+			let html = '<li><a style="border-bottom: 1px solid #d8d8d8;" id="_addfile" href="javascript:;">New File +</a></li>'
+			list.prepend(html);
+		}
+		
+		//<li><a name='new' href="javascript:;">New Project +</a></li>New Project +</a></li>
+		function loadfromfirebase(ref, uid, list) {
+			list.html("")
+			ref.child(uid).orderByChild('lastchange').on('child_added', function (snapshot) {
+				//console.log(snapshot.val().name);
+				if (!snapshot.val().archived && snapshot.val().name) {
+					let html = ('<li><a id="' + snapshot.val().name + '" href="javascript:;">' + snapshot.val().name + '</a></li>');
+					list.prepend(html);
+				}
+			});
+		}
+		
+		$('#openview').on('click', function () {
+			top.window.history.replaceState(stateObj, name, '../' + g.projectname + '/?run=edit');
+			$('#close').show();
+			$('#open').show();
+			$('#openview').hide();
+			runproject(g.uid, g.projectname)
+			resizeframes('?run=edit');
+		});
+		
+		$('#close').on('click', function () {
+			top.window.history.replaceState(stateObj, name, '../' + g.projectname + '/?run=editor');
+			$('#close').hide();
+			$('#open').hide();
+			$('#openview').show();
+			resizeframes('?run=editor');
+		});
+		
+		$('#useroptions').on('click', 'a', function (event) {
+			let option = event.target.name;
+			if (option == 'settings') {
+				top.window.history.pushState(stateObj, name, '../' + '.settings' + '/?run=edit');
+				top.window.location.reload();
+			}
+			if (option == 'makeme') {
+				event.stopPropagation();
+				$('#adminlist').show();
+			}
+			if (option == 'logout') {
+				logout();
+				$('#logo').click();
+			}
+			if (option == 'zip') {
+				window.open($(location).attr("origin") + '/' + g.uid + '/' + "?run=download");
+				window.close();
+			}
+		});
+		
+		$('#projectoptions').on('click', 'a', function (event) {
+			let option = event.target.name;
+			if (option == 'new') {
+				event.stopPropagation();
+				create(projects, g.uid, "");
+			}
+			if (option == 'open') {
+				event.stopPropagation();
+				$('#projectlist').show();
+			}
+			if (option == 'rename') {
+				renameproject();
+			}
+			if (option == 'upload') {
+				$('#fileupload').click();
+			}
+			if (option == 'archive') {
+				if (confirm('Do you want to archive project ' + g.projectname + '?')) {
+					g.currentprojectref.child('settings').update({
+						archived: true
+					});
+					$('#logo').click();
+				}
+			}
+			if (option == 'zip') {
+				window.open($(location).attr("origin") + $(location).attr("pathname") + "?run=download");
+				window.close();
+			}
+		});
+		
+		$('#fileupload').change(function (event) {
+			event.stopPropagation();
+			let file = $('#fileupload')[0].files[0];
+			let fd = new FormData();
+			fd.append('file', file);
+			fd.append('uid', g.uid);
+			fd.append('projectname', g.projectname);
+			console.log(fd, file);
+			jQuery.ajax("/upload", {
+				type: "POST",
+				processData: false,
+				contentType: false,
+				data: fd
+			});
+		});
+		
+		$('#projectlist').on('click', 'a', function (event) {
+			let name = event.target.id;
+			//console.log(window.location.href.split('/'))
+			if (top.window.location.href.split('/')[3] != g.uid) {
+				//console.log('test');
+				top.window.history.pushState(stateObj, name, "/" + g.uid + '/')
+			}
+			top.window.history.pushState(stateObj, name, '../' + name + '/?run=edit');
+			top.window.location.reload();
+		});
+		
+		$('#filelist').on('click', 'a', function (event) {
+			let name = event.target.id;	
+			//console.log(name);
+			if (name == "_addfile") {
+				addfile(g.currentprojectref, 'files', "");
+			} else {
+				addtab(name);
+			}
+		});
+		
+		$('#adminlist').on('click', 'a', function (event) {
+			let uid = event.target.id;
+			if (uid != g.uid) {
+				top.window.history.pushState(stateObj, name, '/' + uid + '/');
+				top.window.location.reload();				
+			}
+		});
+		
+		function tabstyle(tab) {
+			$('.tab').css({'box-shadow':'', 'border-bottom':'', 'z-index': 0});
+			tab.css({'box-shadow':'black 1px -1px 0px 0px', 'border-bottom':'none', 'z-index': 5});		
+		}
+		
+		$('.tabs').on('click', 'span', function (event) {
+			event.target.parentNode.remove();
+			alignlists();
+			$('#_html').click();
+		});
+		
+		$('.tabs').on('click', 'button', function(event) {
+			if (event.target.id) {
+				tabstyle($(this))
+				g.activetab = event.target.id;
+				if (g.activetab == '_addtab') {
+					$('#filelist').show();
+				} else if (g.activetab == '_html') {
+					setEditor(g.contents)
+				} else {
+					editfile(g.currentprojectref, 'files', g.activetab)
+				}
+			}
+		});
+
+		function parsehtml(contents) {
+			let parser = new DOMParser();
+			let html = parser.parseFromString(contents, "text/html");		
+			return html;
+		}
+		
+		function findinlinetabs(contents) {
+			let html = parsehtml(contents);
+			let tabs = html.querySelectorAll('[we-tab]');
+			tabs.forEach(function(tab) {
+				addtab(tab.getAttribute('we-tab'));
+			});
+		}
+		
+		function slice(contents, tabname) {
+			let html = parsehtml(contents);
+			let tab = html.querySelectorAll('[we-tab="' + tabname + '"]');
+			console.log(html, tab);
+			setEditor(tab.innerHTML)
+		}
+		
+		function editfile(ref, uid, name) {
+			console.log(uid, name);
+			name = name.replace('-', '.');
+			console.log(g);
+			if (g[name]) {
+				setEditor(g[name]);
+			} else {
+				//console.log(name)
+				nametoid(ref, uid, name)
+				.then(function(fileid) {
+					ref.child(uid).child(fileid).on('value', function(snapshot) {
+						g[name] = snapshot.val().contents;
+						if (name == snapshot.val().name && editor.getValue != g[name]) {
+							console.log(g[name])
+							setEditor(g[name]);
+						}
+					});
+				});			
+			}
+		}
+		
+		function addtab(name) {
+			let idname = name.replace('.', "-")
+			if ($('#' + idname)[0]) {
+				$('#' + idname).click();
+			} else {
+				let html = '<button class="tab" id="' + idname + '">' + name + '<span class="tabx">x<span></button>'
+				$('#_addtab').before(html);
+				$("#" + idname).click();
+			} 
+			alignlists();
+		}
+			
+		function create(ref, uid, newcontents, name) {
+			if (!name) {
+				name = prompt("New project name?");	
+			}
+			name = checkname(name)
+			//console.log(name)
+			created = ref.child(uid).push({
+				contents: newcontents,
+				name: name,
+				lastchange: firebase.database.ServerValue.TIMESTAMP,
+				settings: {name: name,
+				ispublic: false,
+				archived: false,
+				readonly: false,}
+			})
+			top.window.history.pushState(stateObj, name, '../' + name + '/?run=edit');
+			top.window.location.reload();
+		}
+
+		function addfile(ref, uid, newcontents, name) {
+			let filelist = [];
+			if (!name) {
+				name = prompt("New file name?");	
+			}
+			if (!name.includes('.')) {
+				name = prompt("Please Specify Filetype");
+			}
+			$('#filelist a').each((i, el) => filelist.push(mangle($(el).text())))
+			for (;;) {
+				if (!filelist.includes(name)) break;
+				name = prompt("That name is taken please choose another.");		
+				if (!name.includes('.')) {
+					name = prompt("Please Specify Filetype");
+				}
+			}
+			let created;
+			created = ref.child(uid).push({
+				contents: newcontents,
+				name: name,
+				lastchange: firebase.database.ServerValue.TIMESTAMP,
+			})
+			addtab(name);
+		}		
+		
+		
+		function mangle(s) {
+			return s.replace(/ /g,"_");
+		}
+		
+		function checkname(name) {
+			let namelist = [];
+			$('#projectlist a').each((i, el) => namelist.push(mangle($(el).text())))
+			//console.log(namelist)
+			for (;;) {
+				name = mangle(name);
+				if (!namelist.includes(name)) break;
+				name = prompt("That name is taken please choose another.");		
+			}
+			return name;
+		}
+		
+		function renameproject() {
+			let newname = prompt('What would you like to rename project: ' + g.projectname + '?');
+			newname = checkname(newname)
+			g.currentprojectref.child('settings').update({
+				name: newname,
+			});
+			g.currentprojectref.update({
+				name: newname,
+			});								
+			top.window.history.pushState(stateObj, name, '../' + newname + '/?run=edit');
+			top.window.location.reload();
+		}
+		
+		editor.session.on('change', function() {
+			g.dirtyTime = Date.now();
+		});
+		
+		$('#userbutton').click(function(event) {
+			if (g.uid) {
+
+			} else {
+				let provider = new firebase.auth.GoogleAuthProvider();
+				firebase.auth().signInWithPopup(provider).then(function(result) {
+				}).catch(function(error) {
+				});
+			}
+		});
+		
+		firebase.auth().onAuthStateChanged(function (user) {
+			if (user) {
+				$('#userbutton').html(user.email.split("@")[0])
+				g.cookieId = getCook('cookieId');
+				g.authuid = user.uid;
+				root.child('cookieToUid').child(g.cookieId).set(g.authuid);
+				loadadmins(g.authuid);
+			}
+		});		
+
+		function logout() {
+			firebase.auth().signOut().then(function() {
+				window.history.pushState(stateObj, "page 2", "/")
+				window.location.reload();
+			}, function(error) {
+				// An error happened.
+			});
+		};
+
+		function setItem(key, val) {
+		    localStorage.setItem(key, JSON.stringify(val));
+		}
+		function getItem(key) {
+		    return JSON.parse(localStorage.getItem(key));
+		}
+        function crashed_set(project, val) {
+            let crashed = getItem('crashed_by_project') || {};
+            //console.log('crashed_by_project', crashed);
+            crashed[project] = crashed[project] || {};
+            crashed[project].crashed = val;
+            setItem('crashed_by_project', crashed);
+        }
+        function crashed_get(project) {
+			$('#line').show();
+			$('#rframe').show();
+			$('#lframe').show();
+			let crashed = getItem('crashed_by_project') || {};
+            crashed[project] = crashed[project] || {};
+            return (crashed[project] || {}).crashed;
+        }	
+		let crash_timer_handle;
+		function runproject(uid, projectname) {
+			console.log('run', uid, projectname)
+			if (g.query == '?run=edit') {
+				console.log('crashed', crashed_get(projectname))
+				if (crashed_get(projectname)) {
+					$('#viewframe')[0].contentWindow.location = '?run=crashed';
+					return;
+				}			
+				crashed_set(projectname, true);
+				if (crash_timer_handle) clearTimeout(crash_timer_handle)	
+				crash_timer_handle = setTimeout(function () {crashed_set(projectname, false)}, 1000)
+				let src = '/' + uid + '/'  + projectname + '/';
+				let viewframe = $('#viewframe')[0];
+				if ($('#viewframe')[0].contentWindow.location.href == 'about:blank') {
+					//console.log('replace')
+					$('#viewframe')[0].contentWindow.location.replace(src);	
+				} else {
+					//console.log('reload')
+					$('#viewframe')[0].contentWindow.location.reload();
+				}
+			}
+		}
+		
+		g.dirtyTime = null;
+		setInterval(function () {
+			if (g.dirtyTime && Date.now() - g.dirtyTime > 2000) {
+				let name = g.activetab.replace('-', '.')
+				//console.log(name)
+				g.dirtyTime = null;
+				if (editor.getValue() != g.contents && g.activetab == '_html') {
+					g.contents = editor.getValue();
+					g.currentprojectref.update({
+						contents: g.contents,
+						lastchange: firebase.database.ServerValue.TIMESTAMP
+					});
+					$('#viewframe')[0].contentWindow.location.reload();	
+				} else if (editor.getValue() != g[g.activetab] && g.activetab != '_html' && g.activetab != '_addtab') {
+					g[g.activetab] = editor.getValue();
+					nametoid(g.currentprojectref, 'files', name)
+					.then(function(fileid) {
+						g.currentprojectref.child('files').child(fileid).update({
+							contents: g[g.activetab],
+							lastchange: firebase.database.ServerValue.TIMESTAMP						
+						})
+					});
+					$('#viewframe')[0].contentWindow.location.reload();	
+				}
+			}
+		}, 100);
+	</script>
+</html>

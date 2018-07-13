@@ -1,0 +1,79 @@
+<head>
+	<script src="https://www.gstatic.com/firebasejs/4.8.1/firebase.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.js"></script>
+</head>
+<html>
+	<body>
+		<h2> webedit </h2>
+		<button id="userbutton" class="dropbtn">Login Here</button>
+	</body>
+	<style>
+		.dropbtn {
+			float: right;
+			background-color: blue;
+			color: white;
+			border: none;
+			width: 100;
+			height: 40;
+			font-size: 16px;
+			font-weight: 550;
+		}
+		.dropbtn:hover {
+			background-color: lightgrey;
+			color: blue;
+		}
+	</style>
+	<script>
+		//console.log(document.cookie);
+		var config = {
+			apiKey: "AIzaSyCtsK9Nx0Fh7YzwZ8r7V2oXw_cB0XQG4z8",
+			authDomain: "webedit-204210.firebaseapp.com",
+			databaseURL: "https://webedit-204210.firebaseio.com",
+			projectId: "webedit-204210",
+			storageBucket: "webedit-204210.appspot.com",
+			messagingSenderId: "1059738201826"
+		};
+		firebase.initializeApp(config);
+		const cookieToUidref = firebase.database().ref().child('cookieToUid');
+		const root = firebase.database().ref();
+		
+		function getCook(cookiename) {
+			var cookiestring = RegExp(""+cookiename+"[^;]+").exec(document.cookie);
+			return decodeURIComponent(!!cookiestring ? cookiestring.toString().replace(/^[^=]+./,"") : "");
+		}
+
+		stateObj = {foo: 'projs'};
+		let g = {};		
+		$('.dropbtn').click(function () {
+			if (g.uid) {
+				logout();
+			} else {
+				let provider = new firebase.auth.GoogleAuthProvider();
+				firebase.auth().signInWithPopup(provider).then(function(result) {
+				}).catch(function(error) {
+				});
+			}
+		});		
+		firebase.auth().onAuthStateChanged(function (user) {
+			if (user) {
+				let cookieId = getCook('cookieId');
+				g.uid = user.uid;
+				console.log(cookieId, g.uid);
+				root.child('cookieToUid').child(cookieId).set(g.uid);
+				console.log(g)
+				window.history.replaceState(stateObj, 'index', '/' + g.uid + '/');	
+				window.location.reload();				
+			}
+		});			
+		function logout() {
+			firebase.auth().signOut().then(function() {
+				window.history.pushState(stateObj, "page 2", "/")
+				window.location.reload();
+			}, function(error) {
+				// An error happened.
+			});
+		};
+
+	</script>
+</html>
+
