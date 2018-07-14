@@ -4,7 +4,12 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+	"start": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cosmokay/webedit2.git"
   },
   "author": "",
   "license": "ISC",
@@ -18,5 +23,8 @@
     "express-fileupload": "^0.4.0",
     "firebase": "^5.2.0",
     "randomstring": "^1.1.5"
+  }
+  "engines": {
+    "node": "8.x"
   }
 }
