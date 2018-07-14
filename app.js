@@ -25,7 +25,6 @@ const storage = new Storage({
 });
 const bucket = storage.bucket('we.nerq.com');
 const app = express();
-const cookieToUid = firebase.database().ref().child('cookieToUid');
 let g = {"cookieToUid": {}};
 const PORT = process.env.PORT || 8080;
 
@@ -34,10 +33,36 @@ root.child('admin/admins').on('value', function(snapshot) {
 	console.log(g.admins);
 });
 
-app.use(express.static('html'));
+root.child('cookieToUid').on('child_added', updatecookietouid);
+root.child('cookieToUid').on('child_changed', updatecookietouid);
+
+function updatecookietouid(snapshot) {
+	console.log('A', snapshot.key, snapshot.val());
+	g.cookieToUid[snapshot.key] = snapshot.val();	
+}
+
+app.use(fileupload());
+app.use(cookieParser());
+
 app.use(favicon(__dirname + '/html/images/favicon.jpg'));
-app.get('/', (req, res) => {
-	res.status(200).send('Minimal says, hello, world!').end();
+
+app.use(function (req, res, next) {
+	console.log('cookies1', req.url, g.cookieToUid)
+	if (!req.cookies || !req.cookies.cookieId) {
+		let cookieId = randomstring.generate();
+		console.log('cookie, uid', g.uid, cookieId);
+		res.cookie('cookieId', cookieId);	
+	}
+	next();
+});
+
+app.use(express.static('html'));
+
+app.use(function (req, res) {
+	console.log('cookies2', req.url, g.cookieToUid)
+	g.uid = g.cookieToUid[req.cookies.cookieId];
+	console.log('0', req.cookies.cookieId, g.uid);
+	serve(req, res);
 });
 
 // Start the server
@@ -46,32 +71,9 @@ app.listen(PORT, () => {
 	console.log('Press Ctrl+C to quit.');
 });
 
-app.use(fileupload());
-app.use(cookieParser());
-
 app.post('/upload', function(req, res) {
 	console.log(req);
 	uploadfile(req);
-});
-
-app.use(function (req, res) {
-	//console.log('cookies', g.cookieToUid)
-	g.uid = g.cookieToUid[req.cookies.cookieId];
-	//console.log('0', req.cookies.cookieId, g.uid);
-	if (g.uid) {
-		serve(req, res);
-		return;
-	}
-	cookieToUid.once('value') 
-	.then(function (snapshot) {
-		snapshot.forEach(function (snap) {
-			//console.log('A', snap.key, snap.val());
-			g.cookieToUid[snap.key] = snap.val();	
-		});
-		g.uid = g.cookieToUid[req.cookies.cookieId];
-		console.log('1', g.uid, g.cookieToUid);
-		serve(req, res);
-	});
 });
 
 function uploadfile(req) {
@@ -199,13 +201,6 @@ function serve(req, res) {
 	if (projectname.match(/^\./) && projectname != '.settings') {
 		[filename, projectname] = [projectname]
 	}
-
-	if (!g.uid) {
-		let cookieId = randomstring.generate();
-		console.log('cookie, uid', g.uid, cookieId);
-		res.cookie('cookieId', cookieId);	
-	}
-	
 	readable(projects, uid, projectname, filename)
 	.then(function (readable) {
 		//console.log('readable', readable, filename);

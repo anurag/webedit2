@@ -59,10 +59,12 @@
 				let cookieId = getCook('cookieId');
 				g.uid = user.uid;
 				console.log(cookieId, g.uid);
-				root.child('cookieToUid').child(cookieId).set(g.uid);
-				console.log(g)
-				window.history.replaceState(stateObj, 'index', '/' + g.uid + '/');	
-				window.location.reload();				
+				root.child('cookieToUid').child(cookieId).set(g.uid)
+				.then(function () {
+					console.log(g)
+					window.history.replaceState(stateObj, 'index', '/' + g.uid + '/');	
+					window.location.reload();				
+				});
 			}
 		});			
 		function logout() {
