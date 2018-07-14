@@ -13,6 +13,10 @@
   },
   "author": "",
   "license": "ISC",
+ "bugs": {
+    "url": "https://github.com/cosmokay/webedit2/issues"
+  },
+  "homepage": "https://github.com/cosmokay/webedit2#readme",
   "dependencies": {
     "@google-cloud/datastore": "^1.4.1",
     "@google-cloud/storage": "^1.7.0",
