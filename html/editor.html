@@ -13,7 +13,9 @@
 	<body>
 		<a href="/" style="margin-right: 10px; margin-left: 5px;"><img id="logo" title="table of contents" src="/welogo.png"></a>
 		<div id="userdrop" class="dropdown">
-			<button id="userbutton" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Sign In</button>
+			<button id="userbutton" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Sign In
+				<span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
+			</button>
 			<ul id="useroptions" class="dropdown-menu dropdown-menu-right">
 				<li><a name='settings' href="javascript:;">Settings</a></li>
 				<li><a name='zip' href="javascript:;">Zip All</a></li>
@@ -22,29 +24,30 @@
 			</ul>
 		</div>
 		<div id="projectdrop" class="dropdown">
-			<button id="projectbutton" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Project</button>
+			<button id="projectbutton" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">
+				<span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
+			</button>
 			<ul id="projectoptions" class="dropdown-menu">
 				<li><a name='new' href="javascript:;">New Project +</a></li>
 				<li><a name='open' href="javascript:;">Open Project ></a></li>
 				<li><a name='rename' href="javascript:;">Rename Project</a></li>
 				<li><a style="color:lightgrey" name='clone' href="javascript:;">Clone Project</a></li>
-				<li><a name='upload' href="javascript:;">Upload File</a></li>
 				<li><a name='zip' href="javascript:;">Download As Zip</a></li>
 				<li><a style="color:red" name='archive' href="javascript:;">Archive Project</a></li>
 			</ul>
 		</div>
-		<div class='onoff'>
-			<div>Read Only: <span id='readonly' class="glyphicon glyphicon-pencil"></span></div>
-			<div>Public: <span id='ispublic' class="glyphicon glyphicon-globe"></span></div>
+		<div class="onoff">
+			<span title='Make Project Public' id='ispublic' class="glyphicon glyphicon-globe"></span>
+			<span title='Make Project Read Only' id='readonly' class="glyphicon glyphicon-pencil"></span>
 		</div>
 		<ul id="projectlist" class="dropdown-menu"></ul>
 		<ul id="filelist" class="dropdown-menu"></ul>
 		<ul id="adminlist" class="dropdown-menu dropdown-menu-right"></ul>
 		<div class='viewchange' id='open'>
-			<a id='openlink' target="_blank" href=''>&#11008 </a>
+			<a title='Open Project In Viewer' id='openlink' target="_blank" href=''>&#11008 </a>
 		</div>
-		<div class='viewchange' id='close'>x</div>
-		<div class='viewchange' id='openview'>&#9998;</div>
+		<div title='Close View Window' class='viewchange' id='close'>x</div>
+		<div title='Open View Window' class='viewchange' id='openview'>&#9998;</div>
 		<div class='row'>	
 			<div class='column'>
 				<div class='tabs'>
@@ -62,30 +65,49 @@
 		</form>
 	</body>
 	<style>
+		.viewchange {
+			font-size: 17px;
+		}
+		#editor {
+			z-index: 6;
+		}
+		.onoff {
+			display:block;
+			text-align:center;
+			vertical-align:center;
+			position: absolute;
+			top: -1;
+			left: 120;
+		}
 		#fileform {
 			display: none;
 		}
 		#readonly {
-			color: lightgrey;
+			line-height: 40px;
+			margin-left: 2px;
+			font-size: 22;
+			color: #ececec;
+			height: 40;
+			width: 40;
+		}
+		#readonly:hover {
+			background-color: #337ab7;
+			cursor: pointer;
 		}
 		#ispublic {
-			color: lightgrey;
+			line-height: 40px;
+			margin-left: 5px;
+			font-size: 22;
+			color: #ececec;
+			height: 40;
+			width: 40;
 		}
-		.glyphicon:hover {
-			display: inline;
-			border-color: lightblue;
-			border-style: solid;
-			border-width: 1px;
+		#ispublic:hover {
+			background-color: #337ab7;
 			cursor: pointer;
 		}
 		.toggle.btn {
 			height: 20px;
-		}
-		.onoff {
-			display: inline;
-			position: absolute;
-			top: 0;
-			left: 175px;
 		}
 		#open {
 			margin-top: 11px;
@@ -202,6 +224,10 @@
 			margin-right: 0;
 			margin-left: 0;
 		}
+		.btn {
+			border-radius: 0px;
+			height: 40px;
+		}
 	</style>
 	<script>
 		$('body').css({'height': (window.innerHeight)});
@@ -230,7 +256,7 @@
 		}
 		
 		function alignlists() {		
-			$('#projectlist').css({'left': ($('#projectoptions').width() + $('#logo').width() + 12)});
+			$('#projectlist').css({'left': ($('#projectoptions').width() + $('#logo').width() + 10)});
 			let tablist = [];
 			let change = 0;
 			$('.tab').each((i, el) => tablist.push($(el).outerWidth()));
@@ -393,12 +419,18 @@
 				g.settings = snapshot.val();
 				console.log(g.settings)
 				if (g.settings.ispublic) {
-					$('#ispublic').css('color', 'blue');
+					$('#ispublic').css('color', '#337ab7');
+					$('#ispublic').css('text-shadow', '-2px 0 white, 0 1px white, 2px 0 white, 0 -1px white');
+					$('#ispublic').attr('title', 'Make Project Private');
 				} else {
-					$('#ispublic').css('color', 'lightgrey');
+					$('#ispublic').css('color', '#ececec');
+					$('#ispublic').css('text-shadow', 'none');
+					$('#ispublic').attr('title', 'Make Project Public');
 				}
 				if (g.settings.readonly) {
-					$('#readonly').css('color', 'blue');
+					$('#readonly').css('color', '#337ab7');
+					$('#readonly').css('text-shadow', '-2px 0 white, 0 1px white, 2px 0 white, 0 -1px white');
+					$('#readonly').attr('title', 'Make Project Readable');
 					editor.renderer.$cursorLayer.element.style.display = "none";
 					editor.setOptions({
 						readOnly: true,
@@ -406,7 +438,9 @@
 						highlightGutterLine: false
 					})
 				} else {
-					$('#readonly').css('color', 'lightgrey');				
+					$('#readonly').css('color', '#ececec');				
+					$('#readonly').css('text-shadow', 'none');
+					$('#readonly').attr('title', 'Make Project Read Only');
 					editor.renderer.$cursorLayer.element.style.display = "";
 					editor.setOptions({
 						readOnly: false,
@@ -430,7 +464,7 @@
 		$(function () {
 			//console.log(window.location);
 			[g.host, g.uid, g.projectname, g.filename] = window.location.pathname.split('/');
-			$('#openlink').attr("href", window.location.pathname + '?run=viewer');
+			$('#openlink').attr("href", window.location.pathname);
 			g.query = window.location.search;
 			listentosettings(projects, 'global', 'global', 'global')
 			listentosettings(projects, g.uid, 'global', 'user')
@@ -496,7 +530,9 @@
 		
 		function listfiles(ref, uid, list) {
 			loadfromfirebase(g.currentprojectref, 'files', $('#filelist'));
-			let html = '<li><a style="border-bottom: 1px solid #d8d8d8;" id="_addfile" href="javascript:;">New File +</a></li>'
+			let html = '<li><a style="border-bottom: 1px solid #d8d8d8;" id="_uploadfile" href="javascript:;">Upload File</a></li>'
+			list.prepend(html);
+			html = '<li><a id="_addfile" href="javascript:;">New File +</a></li>'
 			list.prepend(html);
 		}
 		
@@ -562,9 +598,6 @@
 			if (option == 'rename') {
 				renameproject();
 			}
-			if (option == 'upload') {
-				$('#fileupload').click();
-			}
 			if (option == 'archive') {
 				if (confirm('Do you want to archive project ' + g.projectname + '?')) {
 					g.currentprojectref.child('settings').update({
@@ -611,6 +644,8 @@
 			//console.log(name);
 			if (name == "_addfile") {
 				addfile(g.currentprojectref, 'files', "");
+			} else if (name == "_uploadfile") {
+				$('#fileupload').click();
 			} else {
 				addtab(name);
 			}
@@ -626,7 +661,7 @@
 		
 		function tabstyle(tab) {
 			$('.tab').css({'box-shadow':'', 'border-bottom':'', 'z-index': 0});
-			tab.css({'box-shadow':'black 1px -1px 0px 0px', 'border-bottom':'none', 'z-index': 5});		
+			tab.css({'box-shadow':'black 0px -1px 2px 0px', 'border-bottom':'none', 'z-index': 5});		
 		}
 		
 		$('.tabs').on('click', 'span', function (event) {
@@ -641,8 +676,10 @@
 				g.activetab = event.target.id;
 				if (g.activetab == '_addtab') {
 					$('#filelist').show();
+					tabstyle($('#_html'))
 				} else if (g.activetab == '_html') {
 					setEditor(g.contents)
+					tabstyle($('#_html'))
 				} else {
 					editfile(g.currentprojectref, 'files', g.activetab)
 				}
@@ -683,7 +720,7 @@
 					ref.child(uid).child(fileid).on('value', function(snapshot) {
 						g[name] = snapshot.val().contents;
 						if (name == snapshot.val().name && editor.getValue != g[name]) {
-							console.log(g[name])
+							console.log(g[name])				
 							setEditor(g[name]);
 						}
 					});
@@ -863,6 +900,7 @@
 				//console.log(name)
 				g.dirtyTime = null;
 				if (editor.getValue() != g.contents && g.activetab == '_html') {
+					console.log('firebaseprojectup');
 					g.contents = editor.getValue();
 					g.currentprojectref.update({
 						contents: g.contents,
@@ -870,6 +908,7 @@
 					});
 					$('#viewframe')[0].contentWindow.location.reload();	
 				} else if (editor.getValue() != g[g.activetab] && g.activetab != '_html' && g.activetab != '_addtab') {
+					console.log('firebasefileup', g.activetab);
 					g[g.activetab] = editor.getValue();
 					nametoid(g.currentprojectref, 'files', name)
 					.then(function(fileid) {
