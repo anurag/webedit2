@@ -27,7 +27,7 @@
     "express-fileupload": "^0.4.0",
     "firebase": "^5.2.0",
     "randomstring": "^1.1.5"
-  }
+  },
   "engines": {
     "node": "8.x"
   }
