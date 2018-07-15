@@ -148,27 +148,38 @@ function download(res, uid, projectid, projectname) {
 	archive.store = true;  // don't compress the archive
 	archive.pipe(res);
 	if (projectid) {
-		projects.child(uid).child(projectid).once('value', function(snapshot) {
+		projects.child(uid).child(projectid).once('value')
+		.then(function(snapshot) {
+			let files = [];
 			archive.append('', {name: snapshot.val().name + '/'})
 			archive.append(snapshot.val().contents, {name: '/' + snapshot.val().name + '/' + 'index.html'});	
 			for (let file in snapshot.val().files) {
+				files.push({'name': snapshot.val().files[file].name, 'lastchange': snapshot.val().files[file].lastchange});
 				console.log(snapshot.val().files[file].name);
 				archive.append(snapshot.val().files[file].contents, {name: '/' + snapshot.val().name + '/' + snapshot.val().files[file].name});	
 			}
+			archive.append(JSON.stringify(files), {name: '.files.json'});
 			archive.finalize();
 		});
 	} else {
-		projects.child(uid).once('value', function(snapshot) {
+		projects.child(uid).once('value')
+		.then(function(snapshot) {
+			let projects = [];
 			snapshot.forEach(function(snap) {
+				projects.push({'name': snap.val().name, 'lastchange': snap.val().lastchange, 'archived': snap.val().archived})
+				let files = [];
 				if (snap.val().contents && snap.val().settings.archived != true) {
 					archive.append('', {name: snap.val().name + '/'})
 					archive.append(snap.val().contents, {name: '/' + snap.val().name + '/' + 'index.html'});	
 					for (let file in snap.val().files) {
+						files.push({'name': snap.val().files[file].name, 'lastchange': snap.val().files[file].lastchange});
 						console.log(snap.val().files[file].name);
+						archive.append(JSON.stringify(files), {name: '/' + snap.val().name + '/.files'});
 						archive.append(snap.val().files[file].contents, {name: '/' + snap.val().name + '/' + snap.val().files[file].name});	
 					}
 				}
 			});
+			archive.append(JSON.stringify(projects), {name: '.files.json'});			
 			archive.finalize();			
 		});
 	}
@@ -194,32 +205,34 @@ function nametoref(ref, uid, name) {
 }		
 
 function createfilelist(ref, uid, projectname) {
-	console.log(projectname);
+	//console.log(projectname, filename);
 	if (projectname) {
-		nametoref(projects, uid, projectname)
+		return nametoref(ref, uid, projectname)
 		.then(function(projectref) {
-			projectref.child('files').once('value', function (snapshot) {
-				let files = snapshot.val();
-				let results = [];
-				Object.values(files).forEach(function(file) {
-					//console.log(snapshot.val());
-					delete file.contents;
-					console.log('file', file)
-					results.push(file);							
-				});
-				return JSON.stringify(results);
+			return projectref.child('files').once('value');
+		})
+		.then(function(snapshot) {
+			let files = snapshot.val();
+			let results = [];
+			Object.values(files).forEach(function(file) {
+				//console.log(snapshot.val());
+				delete file.contents;
+				console.log('file', file)
+				results.push(file);							
 			});
+			return JSON.stringify(results);
 		});
 	} else {
 		console.log('.files');
-		ref.child(uid).orderByChild('lastchange').once('value', function (snapshot) {
+		return ref.child(uid).orderByChild('lastchange').once('value')
+		.then(function (snapshot) {
 			let allprojects = [];
 			snapshot.forEach(function (snap) {
 				if (snap.val().name) {
 					allprojects.unshift({'name': snap.val().name, 'lastchange': snap.val().lastchange, 'archived': snap.val().settings.archived});
 				}
 			});
-			return JSON.stringify(allprojects)
+			return JSON.stringify(allprojects);
 		});
 	}
 }
@@ -227,7 +240,7 @@ function createfilelist(ref, uid, projectname) {
 function serve(req, res) {
 	let query = req.query;
 	let [host, uid, projectname, filename] = req.path.split('/')
-	console.log(projectname);
+	console.log(uid, projectname);
 	if (!filename) {
 		console.log('URL info:', host, uid, projectname, filename, query.run);
 	}
@@ -247,35 +260,12 @@ function serve(req, res) {
 					//console.log('toc');
 					res.send(snapshot.val().contents);
 				});				
-			} else if (filename == '.files') {
-				console.log(projectname, filename);
-				if (projectname) {
-					nametoref(projects, uid, projectname)
-					.then(function(projectref) {
-						projectref.child('files').once('value', function (snapshot) {
-							let files = snapshot.val();
-							let results = [];
-							Object.values(files).forEach(function(file) {
-								//console.log(snapshot.val());
-								delete file.contents;
-								console.log('file', file)
-								results.push(file);							
-							});
-							res.send(JSON.stringify(results));
-						});
-					});
-				} else {
-					console.log('.files');
-					projects.child(uid).orderByChild('lastchange').once('value', function (snapshot) {
-						let allprojects = [];
-						snapshot.forEach(function (snap) {
-							if (snap.val().name) {
-								allprojects.unshift({'name': snap.val().name, 'lastchange': snap.val().lastchange, 'archived': snap.val().settings.archived});
-							}
-						});
-						res.send(JSON.stringify(allprojects))
-					});
-				}
+			} else if (filename == '.files.json' || filename == '.files') {
+				console.log('252', projectname, filename);
+				createfilelist(projects, uid, projectname)
+				.then(function(files) {
+					res.send(files);
+				});
 			} else if (!projectname) {
 				if (query.run == 'download') {
 					download(res, uid)					
@@ -310,6 +300,9 @@ function serve(req, res) {
 									} else {
 										res.send(snap.val().contents);
 									}
+								} else {
+									res.status(404)
+									res.send('Not found')											
 								}
 							});
 						}
