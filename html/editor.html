@@ -548,7 +548,7 @@
 		}
 		
 		function listfiles(ref, uid, list) {
-			loadfromfirebase(g.currentprojectref, 'files', $('#filelist'));
+			loadfromfirebase(ref, 'files', $('#filelist'));
 			let html = '<li><a style="border-bottom: 1px solid #d8d8d8;" id="_uploadfile" href="javascript:;">Upload File</a></li>'
 			list.prepend(html);
 			html = '<li><a id="_addfile" href="javascript:;">New File +</a></li>'
@@ -563,7 +563,7 @@
 				if (snapshot.val().settings) {
 					console.log(snapshot.val().settings);
 					archived = snapshot.val().settings.archived;
-				}
+				} else archived = false;
 				if (!archived && snapshot.val().name) {
 					let html = ('<li><a id="' + snapshot.val().name + '" href="javascript:;">' + snapshot.val().name + '</a></li>');
 					list.prepend(html);

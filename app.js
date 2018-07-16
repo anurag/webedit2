@@ -283,32 +283,25 @@ function serve(req, res) {
 					.then(function (nametoid) {
 						download(res, uid, nametoid, projectname)
 					});
+				} else if (query.run == 'viewer') {
+					projects.child('global').child('-LFApck9n3U1YdCYWKEA').child('files' ).child('viewer.html').once('value', function (snapshot) {
+						res.send(snapshot.val().contents);
+					});				
+				} else if (query.run == 'edit' || query.run == 'editor') {
+					res.sendFile('editor.html', {root: __dirname + "/html/"});				
 				} else {
-					console.log('RUN OR EDIT');
-					projects.child(uid).orderByChild('name').equalTo(projectname).once('value', function (snapshot) {
-						if (snapshot.val()) {
-							snapshot.forEach(function (snap) {
-								if (!snap.val().settings.archived) {
-									if (query.run == 'edit' || query.run == 'editor') {
-										res.sendFile('editor.html', {root: __dirname + "/html/"});			
-									} else if (query.run == 'viewer') {
-										projects.child('global').child('-LFApck9n3U1YdCYWKEA').child('files' ).orderByChild('name').equalTo('viewer.html').once('value', function (vsnapshot) {
-											vsnapshot.forEach(function (vsnap) {
-												res.send(vsnap.val().contents)
-											});
-										});				
-									} else {
-										res.send(snap.val().contents);
-									}
-								} else {
-									res.status(404)
-									res.send('Not found')											
-								}
-							});
+					console.log('RUN');
+					//?run=
+					nametoref(projects, uid, projectname)
+					.then(function (projectref) {
+						return projectref.once('value');
+					})
+					.then(function (snapshot) {
+						if (true || !snapshot.val().settings.archived) {
+							res.send(snapshot.val().contents);
 						}
-						return;
 					});
-				}
+				} 
 			} else if (filename) {
 				console.log('DEPENDANCY');
 				nametoref(projects, uid, projectname)
