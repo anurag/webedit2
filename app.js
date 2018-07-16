@@ -285,30 +285,32 @@ function serve(req, res) {
 						res.send(snapshot.val().contents);
 					});
 				}
+			} else if (query.run == 'download') {
+				console.log('DOWNLOAD PROJECT');
+				nametoid(projects, uid, projectname)
+				.then(function (nametoid) {
+					download(res, uid, nametoid, projectname)
+				});
+			} else if (query.run == 'viewer') {
+				projects.child('global').child('-LFApck9n3U1YdCYWKEA').child('files' ).child('viewer.html').once('value', function (snapshot) {
+					res.send(snapshot.val().contents);
+				});				
+			} else if (query.run == 'edit' || query.run == 'editor') {
+				let lastfile = null;
+				if (filename) lastfile = filename;
+				nametoref(projects, uid, projectname)
+				.then((projectref) => projectref.child('activetab').set(lastfile));
+				res.sendFile('editor.html', {root: __dirname + "/html/"});				
 			} else if (!filename) {
-				if (query.run == 'download') {
-					console.log('DOWNLOAD PROJECT');
-					nametoid(projects, uid, projectname)
-					.then(function (nametoid) {
-						download(res, uid, nametoid, projectname)
-					});
-				} else if (query.run == 'viewer') {
-					projects.child('global').child('-LFApck9n3U1YdCYWKEA').child('files' ).child('viewer.html').once('value', function (snapshot) {
+				console.log('RUN');
+				//?run=
+				nametoref(projects, uid, projectname)
+				.then(projectref => projectref.once('value'))
+				.then(function (snapshot) {
+					if (true || !snapshot.val().settings.archived) {
 						res.send(snapshot.val().contents);
-					});				
-				} else if (query.run == 'edit' || query.run == 'editor') {
-					res.sendFile('editor.html', {root: __dirname + "/html/"});				
-				} else {
-					console.log('RUN');
-					//?run=
-					nametoref(projects, uid, projectname)
-					.then(projectref => projectref.once('value'))
-					.then(function (snapshot) {
-						if (true || !snapshot.val().settings.archived) {
-							res.send(snapshot.val().contents);
-						}
-					});
-				} 
+					}
+				});
 			} else if (filename) {
 				console.log('DEPENDANCY');
 				let ref;

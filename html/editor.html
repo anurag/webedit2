@@ -494,32 +494,39 @@
 				$('#open').hide();
 				$('#openview').show();
 			}
-			g.activetab = '_html'
 			$('#_html').html(g.projectname);
 			resizeframes(g.query);
 			alignlists();
 			loadfromfirebase(projects, g.uid, $('#projectlist'));
-			nametoid(projects, g.uid, g.projectname)
-			.then(function(projectId) {
-				g.projectid = projectId;
-				g.currentprojectref = firebase.database().ref().child('projects/' + g.uid + '/' + g.projectid);
+			nametoref(projects, g.uid, g.projectname)
+			.then(function(projectref) {
+				g.currentprojectref = projectref;
 				listfiles(g.currentprojectref, 'files', $('#filelist'));
 				g.currentprojectref.on('value', function (snapshot) {
+					if (snapshot.val().activetab) {
+						g.activetab = snapshot.val().activetab
+					} else g.activetab = "_html"
 					if (g.firsttime) {
 						delete g.firsttime;
 						g.contents = snapshot.val().contents;
-						//findinlinetabs(g.contents);
-						setEditor(g.contents);
-						findprojectbooleans(g.currentprojectref);
-						console.log('runfirst')
 						runproject(g.uid, g.projectname);
+						findprojectbooleans(g.currentprojectref);
+						if (g.activetab != "_html") {
+							loadtab(g.activetab);	
+						} else setEditor(g.contents);
 					} else if (snapshot.val().contents != editor.getValue() && g.activetab == '_html') {
+						console.log('1')
 						setEditor(snapshot.val().contents);
 						$('#viewframe')[0].contentWindow.location.reload();	
 					}
 				});
 			});
 		});		
+		
+		function loadtab(tabname) {
+			addtab(tabname);
+			$('#' + tabname).click();
+		}
 		
 		function loadadmins(uid) {
 			root.child('admin').child('admins').once('value', function (snapshot) {
@@ -561,7 +568,7 @@
 			ref.child(uid).orderByChild('lastchange').on('child_added', function (snapshot) {
 				let archived = true;
 				if (snapshot.val().settings) {
-					console.log(snapshot.val().settings);
+					//console.log(snapshot.val().settings);
 					archived = snapshot.val().settings.archived;
 				} else archived = false;
 				if (!archived && snapshot.val().name) {
@@ -687,28 +694,6 @@
 			tab.css({'box-shadow':'black 0px -1px 2px 0px', 'border-bottom':'none', 'z-index': 5});		
 		}
 		
-		$('.tabs').on('click', 'span', function (event) {
-			event.target.parentNode.remove();
-			alignlists();
-			$('#_html').click();
-		});
-		
-		$('.tabs').on('click', 'button', function(event) {
-			if (event.target.id) {
-				tabstyle($(this))
-				g.activetab = event.target.id;
-				if (g.activetab == '_addtab') {
-					$('#filelist').show();
-					tabstyle($('#_html'))
-				} else if (g.activetab == '_html') {
-					setEditor(g.contents)
-					tabstyle($('#_html'))
-				} else {
-					editfile(g.currentprojectref, 'files', g.activetab)
-				}
-			}
-		});
-
 		function parsehtml(contents) {
 			let parser = new DOMParser();
 			let html = parser.parseFromString(contents, "text/html");		
@@ -730,20 +715,53 @@
 			setEditor(tab.innerHTML)
 		}
 		
+		$('.tabs').on('click', 'span', function (event) {
+			event.target.parentNode.remove();
+			alignlists();
+			$('#_html').click();
+		});
+		
+		$('.tabs').on('click', 'button', function(event) {
+			if (event.target.id) {
+				tabstyle($(this))
+				if (event.target.id == '_addtab') {
+					$('#filelist').show();
+					tabstyle($('#_html'))
+				} else if (event.target.id == '_html') {
+					g.activetab = event.target.id;
+					g.currentprojectref.child('activetab').set('_html');
+					top.window.history.replaceState(stateObj, name, '/' + g.uid + '/' + g.projectname + '/?run=edit');
+					console.log('2');
+					setEditor(g.contents)
+					tabstyle($('#_html'))
+				} else {
+					g.activetab = event.target.id;
+					top.window.history.replaceState(stateObj, name, g.activetab + '?run=edit');
+					g.currentprojectref.child('activetab').set(g.activetab);
+					console.log('edit 1')
+					editfile(g.currentprojectref, 'files', g.activetab)
+				}
+			}
+		});
+
 		function editfile(ref, uid, name) {
 			console.log(uid, name);
 			name = name.replace('-', '.');
 			console.log(g);
-			if (g[name]) {
+			if (g[name]) {				
+				console.log('3');
 				setEditor(g[name]);
 			} else {
 				//console.log(name)
-				nametoid(ref, uid, name)
-				.then(function(fileid) {
-					ref.child(uid).child(fileid).on('value', function(snapshot) {
+				nametoref(ref, uid, name)
+				.then(function(fileref) {
+					fileref.on('value', function(snapshot) {
 						g[name] = snapshot.val().contents;
-						if (name == snapshot.val().name && editor.getValue != g[name]) {
-							console.log(g[name])				
+						let namecomp = name.replace('.', '-');
+						console.log(namecomp, name, snapshot.val())
+						if (editor.getValue() != g[name] && g.activetab == namecomp) {
+							//console.log(g[name])				
+							console.log('4');
 							setEditor(g[name]);
 						}
 					});
