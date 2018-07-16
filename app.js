@@ -28,7 +28,7 @@ const app = express();
 let g = {"cookieToUid": {}};
 const PORT = process.env.PORT || 8080;
 
-root.child('admin/admins').on('value', function(snapshot) {
+root.child('admin/admins').on('value', function (snapshot) {
 	g.admins = snapshot.val();
 	console.log(g.admins);
 });
@@ -46,7 +46,7 @@ app.use(cookieParser());
 
 app.use(favicon(__dirname + '/html/images/favicon.jpg'));
 
-app.post('/upload', function(req, res) {
+app.post('/upload', function (req, res) {
 	console.log(req);
 	uploadfile(req);
 });
@@ -98,26 +98,13 @@ function uploadfile(req) {
 	gcstream.end();
 }
 
-function nametoid(ref, uid, name) {
-	//console.log(uid, name);
-	return ref.child(uid).orderByChild('name').equalTo(name).once('value')
-	.then(function (snapshot) {
-		let key;
-		snapshot.forEach(function (snap) {
-			if (snap.val().settings.archived) return;
-			//console.log('key', snap.key)
-			key = snap.key;
-		});
-		return key;
-	});
-}
 
 function readable(ref, uid, project, file) {
 	console.log('2', g.uid, uid, project);
 	if (!project && (uid == g.uid || g.admins[g.uid])) return Promise.resolve(true);
 	return nametoid(ref, uid, project)
 	.then(function (projectId) {
-		//console.log('projectId', projectId)
+		console.log('projectId', projectId)
 		if (!projectId && !g.admins[g.uid]) return false;
 		if (g.admins[g.uid]) return true;
 		return ref.child(uid).child(projectId).once('value')
@@ -149,7 +136,7 @@ function download(res, uid, projectid, projectname) {
 	archive.pipe(res);
 	if (projectid) {
 		projects.child(uid).child(projectid).once('value')
-		.then(function(snapshot) {
+		.then(function (snapshot) {
 			let files = [];
 			archive.append('', {name: snapshot.val().name + '/'})
 			archive.append(snapshot.val().contents, {name: '/' + snapshot.val().name + '/' + 'index.html'});	
@@ -163,9 +150,9 @@ function download(res, uid, projectid, projectname) {
 		});
 	} else {
 		projects.child(uid).once('value')
-		.then(function(snapshot) {
+		.then(function (snapshot) {
 			let projects = [];
-			snapshot.forEach(function(snap) {
+			snapshot.forEach(function (snap) {
 				projects.push({'name': snap.val().name, 'lastchange': snap.val().lastchange, 'archived': snap.val().archived})
 				let files = [];
 				if (snap.val().contents && snap.val().settings.archived != true) {
@@ -185,36 +172,58 @@ function download(res, uid, projectid, projectname) {
 	}
 }
 
-function nametoref(ref, uid, name) {
+function nametosnapshot(ref, uid, name) {
 	//console.log(uid, name);
 	return ref.child(uid).orderByChild('name').equalTo(name).once('value')
 	.then(function (snapshot) {
-		let key;
+		let result;
 		snapshot.forEach(function (snap) {
 			if (snap.val().settings) {
 				if (snap.val().settings.archived) return;
 			}
 			console.log('key', snap.key)
-			key = snap.ref;
+			result = snap;
 		});
-		if (!key) {
+		if (!result) {
 			throw 'ref not found';
 		}
-		return key;
+		console.log('results', result.key, result.val());
+		return result;
 	});
 }		
+
+function nametoid(ref, uid, name) {
+	return nametosnapshot(ref, uid, name)
+	.then(function (snapshot) {
+		return snapshot.key;
+	});
+}
+
+function nametoobject(ref, uid, name) {
+	return nametosnapshot(ref, uid, name)
+	.then(function (snapshot) {
+		return snapshot.val();
+	});
+}
+
+function nametoref(ref, uid, name) {
+	return nametosnapshot(ref, uid, name)
+	.then(function (snapshot) {
+		return snapshot.ref;
+	});
+}
 
 function createfilelist(ref, uid, projectname) {
 	//console.log(projectname, filename);
 	if (projectname) {
 		return nametoref(ref, uid, projectname)
-		.then(function(projectref) {
+		.then(function (projectref) {
 			return projectref.child('files').once('value');
 		})
-		.then(function(snapshot) {
+		.then(function (snapshot) {
 			let files = snapshot.val();
 			let results = [];
-			Object.values(files).forEach(function(file) {
+			Object.values(files).forEach(function (file) {
 				//console.log(snapshot.val());
 				delete file.contents;
 				console.log('file', file)
@@ -256,14 +265,14 @@ function serve(req, res) {
 			return;
 		} else {
 			if (query.run == 'crashed') {
-				projects.child('0GZ6h7paIPSfwN6kvMqxv85p9XX2').child('-LEboYpzmQHHIb9ABL73').child('files' ).child('-LEbovEq_RODq0hVUfpP').once('value', function(snapshot) {
+				projects.child('0GZ6h7paIPSfwN6kvMqxv85p9XX2').child('-LEboYpzmQHHIb9ABL73').child('files' ).child('-LEbovEq_RODq0hVUfpP').once('value', function (snapshot) {
 					//console.log('toc');
 					res.send(snapshot.val().contents);
 				});				
 			} else if (filename == '.files.json' || filename == '.files') {
 				console.log('252', projectname, filename);
 				createfilelist(projects, uid, projectname)
-				.then(function(files) {
+				.then(function (files) {
 					res.send(files);
 				});
 			} else if (!projectname) {
@@ -271,7 +280,7 @@ function serve(req, res) {
 					download(res, uid)					
 				} else {
 					console.log('TABLE OF CONTENTS');
-					projects.child('0GZ6h7paIPSfwN6kvMqxv85p9XX2').child('-LEboYpzmQHHIb9ABL73').child('files' ).child('-LFVYbMm1BjtqOW6vJpY').once('value', function(snapshot) {
+					projects.child('0GZ6h7paIPSfwN6kvMqxv85p9XX2').child('-LEboYpzmQHHIb9ABL73').child('files' ).child('-LFVYbMm1BjtqOW6vJpY').once('value', function (snapshot) {
 						//console.log('toc');
 						res.send(snapshot.val().contents);
 					});
@@ -293,9 +302,7 @@ function serve(req, res) {
 					console.log('RUN');
 					//?run=
 					nametoref(projects, uid, projectname)
-					.then(function (projectref) {
-						return projectref.once('value');
-					})
+					.then(projectref => projectref.once('value'))
 					.then(function (snapshot) {
 						if (true || !snapshot.val().settings.archived) {
 							res.send(snapshot.val().contents);
@@ -304,26 +311,43 @@ function serve(req, res) {
 				} 
 			} else if (filename) {
 				console.log('DEPENDANCY');
+				let ref;
 				nametoref(projects, uid, projectname)
-				.then(function(projectref) {
+				.then(function (projectref) {
+					ref = projectref;
 					nametoref(projectref, 'files', filename)
-					.then(function(fileref) {
+					.then(function (fileref) {
 						fileref.once('value', function (snapshot) {
-							let type = snapshot.val().name.split('.')[1]
-							if (type == 'js') {type = 'javascript'}
-							res.set('content-type', 'text/'+type);
-							res.send(snapshot.val().contents);							
+							console.log('found')
+							sendwithtype(res, snapshot.val().name, snapshot.val().contents);
 						});
 					})
-					.catch(function(err) {
+					.catch(function (err) {
 						let file = bucket.file('/' + uid + '/' + projectname + '/' + filename);
 						console.log('test');
 						let filereadstream = file.createReadStream();
 						console.log('test2');
 						filereadstream.pipe(res);
-						filereadstream.on('error', function(err2) {
-							res.status(404)
-							res.send('file not found')							
+						filereadstream.on('error', function (err2) {
+							if (query.create == 'yes') {
+								nametoref(projects, '0GZ6h7paIPSfwN6kvMqxv85p9XX2', 'admin')
+								.then(projectref => nametoobject(projectref, 'files', 'template.html'))
+								.then(function (fileobj) {
+									ref.child('files').push({
+										contents: fileobj.contents,
+										name: filename,
+										lastchange: firebase.database.ServerValue.TIMESTAMP,
+									});
+									sendwithtype(res, filename, fileobj.contents);
+								});								
+							} else if (query.create == 'maybe') {
+								nametoref(projects, '0GZ6h7paIPSfwN6kvMqxv85p9XX2', 'admin')
+								.then(projectref => nametoobject(projectref, 'files', 'notfound.html'))
+								.then(fileobj => sendwithtype(res, fileobj.name, fileobj.contents));
+							} else {
+								res.status(404)
+								res.send('file not found')													
+							}
 						});
 					});
 				});
@@ -335,6 +359,14 @@ function serve(req, res) {
 	});
 }
 
+function sendwithtype(res, name, contents) {
+	let type = name.replace(/^.*\.(.*)$/, "$1");
+	console.log('type', type, contents);
+	if (type == 'js') {type = 'javascript'};
+	if (type == 'htm') {type = 'html'};	
+	res.set('content-type', 'text/'+type);
+	res.send(contents);							
+}
 
 
 

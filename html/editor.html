@@ -107,7 +107,7 @@
 			width: 40;
 		}
 		#readonly:hover {
-			background-color: #337ab7;
+			//background-color: #337ab7;
 			cursor: pointer;
 		}
 		#ispublic {
@@ -118,7 +118,7 @@
 			width: 40;
 		}
 		#ispublic:hover {
-			background-color: #337ab7;
+			//background-color: #337ab7;
 			cursor: pointer;
 		}
 		.toggle.btn {
@@ -446,8 +446,8 @@
 					$('#ispublic').attr('title', 'Make Project Public');
 				}
 				if (g.settings.readonly) {
-					$('#readonly').css('color', '#337ab7');
-					$('#readonly').css('text-shadow', '-2px 0 white, 0 1px white, 2px 0 white, 0 -1px white');
+					$('#readonly').css('color', '#a5a5a5');				
+					$('#readonly').css('text-shadow', 'none');
 					$('#readonly').attr('title', 'Make Project Readable');
 					editor.renderer.$cursorLayer.element.style.display = "none";
 					editor.setOptions({
@@ -456,8 +456,8 @@
 						highlightGutterLine: false
 					})
 				} else {
-					$('#readonly').css('color', '#a5a5a5');				
-					$('#readonly').css('text-shadow', 'none');
+					$('#readonly').css('color', '#337ab7');
+					$('#readonly').css('text-shadow', '-2px 0 white, 0 1px white, 2px 0 white, 0 -1px white');
 					$('#readonly').attr('title', 'Make Project Read Only');
 					editor.renderer.$cursorLayer.element.style.display = "";
 					editor.setOptions({
