@@ -1,3 +1,4 @@
+
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<script src="/src/ace.js" type="text/javascript" charset="utf-8"></script>
@@ -12,7 +13,7 @@
 <html>
 	<body>
 		<div class='topbar'>
-			<a href="/" "><img id="logo" title="table of contents" src="/welogo.png"></a>
+			<a id="logolink" href="/"><img id="logo" title="table of contents" src="/welogo.png"></a>
 			<div id="userdrop" class="dropdown">
 				<button title='List User Options' id="userbutton" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Sign In
 					<span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
@@ -251,8 +252,6 @@
 		$('body').css({'height': (window.innerHeight)});
 		$('#projectlist').css({'left': ($('#projectoptions').width() + $('#logo').width() + 12)});
 
-		console.log()
-		
 		$(window).on('resize', function(){ 
 			$('body').css({'height': (window.innerHeight)});
 			alignlists();
@@ -435,7 +434,7 @@
 		function findprojectbooleans(ref) {
 			ref.child('settings').on('value', function(snapshot) {
 				g.settings = snapshot.val();
-				console.log(g.settings)
+				//console.log(g.settings)
 				if (g.settings.ispublic) {
 					$('#ispublic').css('color', '#337ab7');
 					$('#ispublic').css('text-shadow', '-2px 0 white, 0 1px white, 2px 0 white, 0 -1px white');
@@ -470,7 +469,7 @@
 		}
 		
 		$('.onoff').on('click', 'span', function(event) {
-			console.log(event.target.id);
+			//console.log(event.target.id);
 			if (event.target.id != '')
 				if (g.settings[event.target.id]) {
 					g.currentprojectref.child('settings').child(event.target.id).set(false);
@@ -484,6 +483,7 @@
 			//console.log(window.location);
 			[g.host, g.uid, g.projectname, g.filename] = window.location.pathname.split('/');
 			$('#openlink').attr("href", window.location.pathname);
+			$('#logolink').attr("href", '/' + g.uid + '/');
 			g.query = window.location.search;
 			listentosettings(projects, 'global', 'global', 'global')
 			listentosettings(projects, g.uid, 'global', 'user')
@@ -502,30 +502,47 @@
 			.then(function(projectref) {
 				g.currentprojectref = projectref;
 				listfiles(g.currentprojectref, 'files', $('#filelist'));
-				g.currentprojectref.on('value', function (snapshot) {
+				g.currentprojectref.once('value')
+				.then(function (snapshot) {
+					findprojectbooleans(g.currentprojectref);
+					runproject(g.uid, g.projectname);
+					g.contents = snapshot.val().contents;
 					if (snapshot.val().activetab) {
-						g.activetab = snapshot.val().activetab
-					} else g.activetab = "_html"
-					if (g.firsttime) {
-						delete g.firsttime;
-						g.contents = snapshot.val().contents;
-						runproject(g.uid, g.projectname);
-						findprojectbooleans(g.currentprojectref);
-						if (g.activetab != "_html") {
-							loadtab(g.activetab);	
-						} else setEditor(g.contents);
-					} else if (snapshot.val().contents != editor.getValue() && g.activetab == '_html') {
-						console.log('1')
-						setEditor(snapshot.val().contents);
-						$('#viewframe')[0].contentWindow.location.reload();	
+						g.activetab = snapshot.val().activetab;
+					} else g.activetab = '_html';
+					if (g.activetab == '_html') {
+						setEditor(g.contents);
 					}
+					g.currentprojectref.child('contents').on('value', function(contentsnap) {
+						if (contentsnap.val() != g.contents) {
+							if (g.activetab == '_html') {
+								g.contents = contentsnap.val();
+								setEditor(contentsnap.val());
+							}
+							runproject(g.uid, g.projectname);
+						}						
+					});
+					g.currentprojectref.child('activetab').on('value', function(activetabsnap) {
+						console.log(activetabsnap.val())
+						if (activetabsnap.val() && activetabsnap.val() != '_html') {
+							let filename = activetabsnap.val().replace('.', '-');
+							console.log(filename);
+							loadtab(filename)
+							addtab(filename);
+						}
+					});
+					g.currentprojectref.child('files').on('child_changed', function(filechange) {
+						//console.log('filechange', g[filechange.val().name]);
+						if (g[filechange.val().name] != filechange.val().contents) {
+							runproject(g.uid, g.projects);
+						}
+					});
 				});
 			});
 		});		
 		
 		function loadtab(tabname) {
-			addtab(tabname);
-			$('#' + tabname).click();
+			g.currentprojectref.child('activetab').set(tabname);
 		}
 		
 		function loadadmins(uid) {
@@ -649,7 +666,7 @@
 			fd.append('file', file);
 			fd.append('uid', g.uid);
 			fd.append('projectname', g.projectname);
-			console.log(fd, file);
+			//console.log(fd, file);
 			jQuery.ajax("/upload", {
 				type: "POST",
 				processData: false,
@@ -711,7 +728,7 @@
 		function slice(contents, tabname) {
 			let html = parsehtml(contents);
 			let tab = html.querySelectorAll('[we-tab="' + tabname + '"]');
-			console.log(html, tab);
+			//console.log(html, tab);
 			setEditor(tab.innerHTML)
 		}
 		
@@ -729,39 +746,42 @@
 					tabstyle($('#_html'))
 				} else if (event.target.id == '_html') {
 					g.activetab = event.target.id;
-					g.currentprojectref.child('activetab').set('_html');
 					top.window.history.replaceState(stateObj, name, '/' + g.uid + '/' + g.projectname + '/?run=edit');
-					console.log('2');
+					//console.log('2');
 					setEditor(g.contents)
 					tabstyle($('#_html'))
 				} else {
 					g.activetab = event.target.id;
-					top.window.history.replaceState(stateObj, name, g.activetab + '?run=edit');
-					g.currentprojectref.child('activetab').set(g.activetab);
-					console.log('edit 1')
+					top.window.history.replaceState(stateObj, name, g.activetab.replace('-', '.') + '?run=edit');
+					//console.log('edit 1')
 					editfile(g.currentprojectref, 'files', g.activetab)
 				}
 			}
 		});
 
 		function editfile(ref, uid, name) {
-			console.log(uid, name);
+			//console.log(uid, name);
 			name = name.replace('-', '.');
-			console.log(g);
+			//console.log(g);
 			if (g[name]) {				
-				console.log('3');
+				//console.log('3');
 				setEditor(g[name]);
 			} else {
 				//console.log(name)
 				nametoref(ref, uid, name)
 				.then(function(fileref) {
 					fileref.on('value', function(snapshot) {
-						g[name] = snapshot.val().contents;
 						let namecomp = name.replace('.', '-');
-						console.log(namecomp, name, snapshot.val())
+						//console.log(namecomp, name, snapshot.val())
+						if (g[name] != snapshot.val().contents) {
+							if (g[name]) {
+								runproject(g.uid, g.projectname);
+							}
+							g[name] = snapshot.val().contents;
+						}
 						if (editor.getValue() != g[name] && g.activetab == namecomp) {
 							//console.log(g[name])				
-							console.log('4');
+							//console.log('4');
 							setEditor(g[name]);
 						}
 					});
@@ -942,23 +962,21 @@
 				g.dirtyTime = null;
 				if (editor.getValue() != g.contents && g.activetab == '_html') {
 					console.log('firebaseprojectup');
-					g.contents = editor.getValue();
+					//g.contents = editor.getValue();
 					g.currentprojectref.update({
-						contents: g.contents,
+						contents: editor.getValue(),
 						lastchange: firebase.database.ServerValue.TIMESTAMP
 					});
-					$('#viewframe')[0].contentWindow.location.reload();	
 				} else if (editor.getValue() != g[g.activetab] && g.activetab != '_html' && g.activetab != '_addtab') {
 					console.log('firebasefileup', g.activetab);
-					g[g.activetab] = editor.getValue();
+					//g[g.activetab] = editor.getValue();
 					nametoid(g.currentprojectref, 'files', name)
 					.then(function(fileid) {
 						g.currentprojectref.child('files').child(fileid).update({
-							contents: g[g.activetab],
+							contents: editor.getValue(),
 							lastchange: firebase.database.ServerValue.TIMESTAMP						
 						})
 					});
-					$('#viewframe')[0].contentWindow.location.reload();	
 				}
 			}
 		}, 100);

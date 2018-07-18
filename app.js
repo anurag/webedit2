@@ -47,15 +47,15 @@ app.use(cookieParser());
 app.use(favicon(__dirname + '/html/images/favicon.jpg'));
 
 app.post('/upload', function (req, res) {
-	console.log(req);
+	//console.log(req);
 	uploadfile(req);
 });
 
 app.use(function (req, res, next) {
-	console.log('cookies1', req.url, g.cookieToUid)
+	//console.log('cookies1', req.url, g.cookieToUid)
 	if (!req.cookies || !req.cookies.cookieId) {
 		let cookieId = randomstring.generate();
-		console.log('cookie, uid', g.uid, cookieId);
+		//console.log('cookie, uid', g.uid, cookieId);
 		res.cookie('cookieId', cookieId);	
 	}
 	next();
@@ -64,9 +64,9 @@ app.use(function (req, res, next) {
 app.use(express.static('html'));
 
 app.use(function (req, res) {
-	console.log('cookies2', req.url, g.cookieToUid)
+	//console.log('cookies2', req.url, g.cookieToUid)
 	g.uid = g.cookieToUid[req.cookies.cookieId];
-	console.log('0', req.cookies.cookieId, g.uid);
+	//console.log('0', req.cookies.cookieId, g.uid);
 	serve(req, res);
 });
 
@@ -100,7 +100,7 @@ function uploadfile(req) {
 
 
 function readable(ref, uid, project, file) {
-	console.log('2', g.uid, uid, project);
+	//console.log('2', g.uid, uid, project);
 	if (!project && (uid == g.uid || g.admins[g.uid])) return Promise.resolve(true);
 	return nametoid(ref, uid, project)
 	.then(function (projectId) {
@@ -109,14 +109,14 @@ function readable(ref, uid, project, file) {
 		if (g.admins[g.uid]) return true;
 		return ref.child(uid).child(projectId).once('value')
 		.then(function (snapshot) {
-			console.log("60", snapshot.val().settings.ispublic, uid == g.uid);
+			//console.log("60", snapshot.val().settings.ispublic, uid == g.uid);
 			return snapshot.val().settings.ispublic || uid == g.uid || g.admins[g.uid];
 		});
 	});
 }
 
 function download(res, uid, projectid, projectname) {
-	console.log(uid, projectid);
+	//console.log(uid, projectid);
 	var archive = archiver('zip');
 	var zippedFilename;
 	if (projectname) {
@@ -142,7 +142,7 @@ function download(res, uid, projectid, projectname) {
 			archive.append(snapshot.val().contents, {name: '/' + snapshot.val().name + '/' + 'index.html'});	
 			for (let file in snapshot.val().files) {
 				files.push({'name': snapshot.val().files[file].name, 'lastchange': snapshot.val().files[file].lastchange});
-				console.log(snapshot.val().files[file].name);
+				//console.log(snapshot.val().files[file].name);
 				archive.append(snapshot.val().files[file].contents, {name: '/' + snapshot.val().name + '/' + snapshot.val().files[file].name});	
 			}
 			archive.append(JSON.stringify(files), {name: '.files.json'});
@@ -160,7 +160,7 @@ function download(res, uid, projectid, projectname) {
 					archive.append(snap.val().contents, {name: '/' + snap.val().name + '/' + 'index.html'});	
 					for (let file in snap.val().files) {
 						files.push({'name': snap.val().files[file].name, 'lastchange': snap.val().files[file].lastchange});
-						console.log(snap.val().files[file].name);
+						//console.log(snap.val().files[file].name);
 						archive.append(JSON.stringify(files), {name: '/' + snap.val().name + '/.files'});
 						archive.append(snap.val().files[file].contents, {name: '/' + snap.val().name + '/' + snap.val().files[file].name});	
 					}
@@ -181,13 +181,13 @@ function nametosnapshot(ref, uid, name) {
 			if (snap.val().settings) {
 				if (snap.val().settings.archived) return;
 			}
-			console.log('key', snap.key)
+			//console.log('key', snap.key)
 			result = snap;
 		});
 		if (!result) {
 			throw 'ref not found';
 		}
-		console.log('results', result.key, result.val());
+		//console.log('results', result.key, result.val());
 		return result;
 	});
 }		
@@ -226,13 +226,13 @@ function createfilelist(ref, uid, projectname) {
 			Object.values(files).forEach(function (file) {
 				//console.log(snapshot.val());
 				delete file.contents;
-				console.log('file', file)
+				//console.log('file', file)
 				results.push(file);							
 			});
 			return JSON.stringify(results);
 		});
 	} else {
-		console.log('.files');
+		//console.log('.files');
 		return ref.child(uid).orderByChild('lastchange').once('value')
 		.then(function (snapshot) {
 			let allprojects = [];
@@ -249,9 +249,9 @@ function createfilelist(ref, uid, projectname) {
 function serve(req, res) {
 	let query = req.query;
 	let [host, uid, projectname, filename] = req.path.split('/')
-	console.log(uid, projectname);
+	//console.log(uid, projectname);
 	if (!filename) {
-		console.log('URL info:', host, uid, projectname, filename, query.run);
+		//console.log('URL info:', host, uid, projectname, filename, query.run);
 	}
 	if (projectname.match(/^\./) && projectname != '.settings') {
 		[filename, projectname] = [projectname]
@@ -270,7 +270,7 @@ function serve(req, res) {
 					res.send(snapshot.val().contents);
 				});				
 			} else if (filename == '.files.json' || filename == '.files') {
-				console.log('252', projectname, filename);
+				//console.log('252', projectname, filename);
 				createfilelist(projects, uid, projectname)
 				.then(function (files) {
 					res.send(files);
@@ -279,14 +279,14 @@ function serve(req, res) {
 				if (query.run == 'download') {
 					download(res, uid)					
 				} else {
-					console.log('TABLE OF CONTENTS');
+					//console.log('TABLE OF CONTENTS');
 					projects.child('0GZ6h7paIPSfwN6kvMqxv85p9XX2').child('-LEboYpzmQHHIb9ABL73').child('files' ).child('-LFVYbMm1BjtqOW6vJpY').once('value', function (snapshot) {
 						//console.log('toc');
 						res.send(snapshot.val().contents);
 					});
 				}
 			} else if (query.run == 'download') {
-				console.log('DOWNLOAD PROJECT');
+				//console.log('DOWNLOAD PROJECT');
 				nametoid(projects, uid, projectname)
 				.then(function (nametoid) {
 					download(res, uid, nametoid, projectname)
@@ -302,7 +302,7 @@ function serve(req, res) {
 				.then((projectref) => projectref.child('activetab').set(lastfile));
 				res.sendFile('editor.html', {root: __dirname + "/html/"});				
 			} else if (!filename) {
-				console.log('RUN');
+				//console.log('RUN');
 				//?run=
 				nametoref(projects, uid, projectname)
 				.then(projectref => projectref.once('value'))
@@ -312,7 +312,7 @@ function serve(req, res) {
 					}
 				});
 			} else if (filename) {
-				console.log('DEPENDANCY');
+				//console.log('DEPENDANCY');
 				let ref;
 				nametoref(projects, uid, projectname)
 				.then(function (projectref) {
@@ -320,15 +320,15 @@ function serve(req, res) {
 					nametoref(projectref, 'files', filename)
 					.then(function (fileref) {
 						fileref.once('value', function (snapshot) {
-							console.log('found')
-							sendwithtype(res, snapshot.val().name, snapshot.val().contents);
+							//console.log('found')
+							sendwithtype(res, projects, uid, projectname, snapshot.val().name, snapshot.val().contents);
 						});
 					})
 					.catch(function (err) {
 						let file = bucket.file('/' + uid + '/' + projectname + '/' + filename);
-						console.log('test');
+						//console.log('test');
 						let filereadstream = file.createReadStream();
-						console.log('test2');
+						//console.log('test2');
 						filereadstream.pipe(res);
 						filereadstream.on('error', function (err2) {
 							if (query.create == 'yes') {
@@ -340,7 +340,7 @@ function serve(req, res) {
 										name: filename,
 										lastchange: firebase.database.ServerValue.TIMESTAMP,
 									});
-									sendwithtype(res, filename, fileobj.contents);
+									sendwithtype(res, projects, uid, projectname, filename, fileobj.contents);
 								});								
 							} else if (query.create == 'maybe') {
 								nametoref(projects, '0GZ6h7paIPSfwN6kvMqxv85p9XX2', 'admin')
@@ -361,11 +361,18 @@ function serve(req, res) {
 	});
 }
 
-function sendwithtype(res, name, contents) {
+function sendwithtype(res, ref, uid, projectname, name, contents) {
 	let type = name.replace(/^.*\.(.*)$/, "$1");
-	console.log('type', type, contents);
+	console.log('type', type, uid, name);
 	if (type == 'js') {type = 'javascript'};
-	if (type == 'htm') {type = 'html'};	
+	if (type == 'htm') {type = 'html'};
+	if (type == 'html') {
+		nametoref(ref, uid, projectname)
+		.then(function(projectref) {
+			console.log(type)
+			projectref.child('activetab').set(name);
+		});
+	}
 	res.set('content-type', 'text/'+type);
 	res.send(contents);							
 }
