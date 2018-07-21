@@ -515,6 +515,7 @@
 					}
 					g.currentprojectref.child('contents').on('value', function(contentsnap) {
 						if (contentsnap.val() != g.contents) {
+							slice();
 							if (g.activetab == '_html') {
 								g.contents = contentsnap.val();
 								setEditor(contentsnap.val());
@@ -725,11 +726,17 @@
 			});
 		}
 		
-		function slice(contents, tabname) {
-			let html = parsehtml(contents);
-			let tab = html.querySelectorAll('[we-tab="' + tabname + '"]');
-			//console.log(html, tab);
-			setEditor(tab.innerHTML)
+		function slice() {
+			let lines = editor.session.doc.getAllLines();
+			//console.log(lines)
+			for (let i = 0; i < lines.length; i++) {
+				//console.log('line:', i, lines[i]);
+				if (lines[i].includes('we-tab')) {
+					let index = lines[i].match('we-tab').index + 6;
+					let tabname = lines[i].slice(index).match(/(["'])(?:(?=(\\?))\2.)*?\1/g);
+					console.log(tabname, tabname[0].replace(tabname[0].charAt(0), ''));
+				}
+			}
 		}
 		
 		$('.tabs').on('click', 'span', function (event) {
@@ -876,6 +883,7 @@
 		}
 		
 		editor.session.on('change', function() {
+			slice()
 			g.dirtyTime = Date.now();
 		});
 		
