@@ -58,6 +58,7 @@
 					--><button class="tab"  id='_addtab'>...</button>
 				</div>
 				<div id="editor"></div>
+				<div id="inlineeditor"></div>
 			</div>
 			<div class='column'>
 				<iframe id='viewframe' src=''></iframe>
@@ -339,6 +340,9 @@
 			return values;
 		}
 		
+		g.inlineeditor = ace.edit('inlineeditor');-
+		g.inlineeditor.setTheme("ace/theme/dawn");
+		g.inlineeditor.getSession().setOption("ace/mode/javascript");
 		let editor = ace.edit('editor');
 		editor.setTheme("ace/theme/dawn");
 		editor.getSession().setOption("ace/mode/javascript");
@@ -512,11 +516,11 @@
 					} else g.activetab = '_html';
 					if (g.activetab == '_html') {
 						setEditor(g.contents);
+						slice();
 					}
 					g.currentprojectref.child('contents').on('value', function(contentsnap) {
 						if (contentsnap.val() != g.contents) {
-							slice();
-							if (g.activetab == '_html') {
+							if (g.activetab == '_html' && editor.getValue() != contentsnap.val()) {
 								g.contents = contentsnap.val();
 								setEditor(contentsnap.val());
 							}
@@ -726,18 +730,6 @@
 			});
 		}
 		
-		function slice() {
-			let lines = editor.session.doc.getAllLines();
-			//console.log(lines)
-			for (let i = 0; i < lines.length; i++) {
-				//console.log('line:', i, lines[i]);
-				if (lines[i].includes('we-tab')) {
-					let index = lines[i].match('we-tab').index + 6;
-					let tabname = lines[i].slice(index).match(/(["'])(?:(?=(\\?))\2.)*?\1/g);
-					console.log(tabname, tabname[0].replace(tabname[0].charAt(0), ''));
-				}
-			}
-		}
 		
 		$('.tabs').on('click', 'span', function (event) {
 			event.target.parentNode.remove();
@@ -748,24 +740,46 @@
 		$('.tabs').on('click', 'button', function(event) {
 			if (event.target.id) {
 				tabstyle($(this))
-				if (event.target.id == '_addtab') {
-					$('#filelist').show();
-					tabstyle($('#_html'))
-				} else if (event.target.id == '_html') {
-					g.activetab = event.target.id;
+				if (event.target.id == '_inlinetab') {
+					slice();
+					g.activetab = event.target.id;					
 					top.window.history.replaceState(stateObj, name, '/' + g.uid + '/' + g.projectname + '/?run=edit');
-					//console.log('2');
-					setEditor(g.contents)
-					tabstyle($('#_html'))
-				} else {
+					swapeditors(true);
 					g.activetab = event.target.id;
-					top.window.history.replaceState(stateObj, name, g.activetab.replace('-', '.') + '?run=edit');
-					//console.log('edit 1')
-					editfile(g.currentprojectref, 'files', g.activetab)
+					setEditor(g.contents)
+					console.log(g.inlinetabval)
+				} else {
+					swapeditors(false);					
+					if (event.target.id == '_addtab') {
+						$('#filelist').show();
+						tabstyle($('#_html'))
+					} else if (event.target.id == '_html') {
+						g.activetab = event.target.id;
+						top.window.history.replaceState(stateObj, name, '/' + g.uid + '/' + g.projectname + '/?run=edit');
+						//console.log('2');
+						setEditor(g.contents)
+					} else {
+						g.activetab = event.target.id;
+						top.window.history.replaceState(stateObj, name, g.activetab.replace('-', '.') + '?run=edit');
+						//console.log('edit 1')
+						editfile(g.currentprojectref, 'files', g.activetab)
+					}
 				}
 			}
 		});
 
+		function swapeditors(inline) {
+			let change = ($('#userbutton').height() + $('.tabs').height() + 40)
+			if (inline) {
+				$('#editor').css({'height': 0, 'width': window.innerWidth/2});				
+				$('#inlineeditor').css({'height': (window.innerHeight - change), 'width': window.innerWidth/2});				
+			} else {
+				$('#editor').css({'height': (window.innerHeight - change), 'width': window.innerWidth/2});				
+				$('#inlineeditor').css({'height': 0, 'width': window.innerWidth/2});									
+			}
+
+		}
+		
 		function editfile(ref, uid, name) {
 			//console.log(uid, name);
 			name = name.replace('-', '.');
@@ -881,9 +895,73 @@
 			top.window.history.pushState(stateObj, name, '../' + newname + '/?run=edit');
 			top.window.location.reload();
 		}
+
+		function slice() {
+			let lines = editor.session.doc.getAllLines();
+			let inlinetabname;
+			let startline;
+			let endline;
+			for (let i = 0; i < lines.length; i++) {
+				//console.log('line:', i, lines[i]);
+				if (!startline) {
+					if (lines[i].includes('<script') && lines[i].includes('we-tab')) {
+						startline = i + 1;
+						[,,inlinetabname] = lines[i].match(/we-tab=(['"])(.*?)\1/);
+						//console.log(tabname);
+					}
+				} else {
+					lines[i] = lines[i] + '\n'
+					if (lines[i].includes('</scr' + 'ipt>')) {
+						endline = i - 1;
+						break;
+					}
+				}
+			}
+			if (!startline || !endline) return;
+			if (!$('#_inlinetab')[0]) {
+				$('#_html').after('<button class="tab" id="_inlinetab">' + inlinetabname + '</button>');
+			}
+			g.inlinetabval = lines.slice(startline, endline + 1);
+			g.inlineeditor.setValue(g.inlinetabval.join(""));
+			g.inlineeditor.gotoLine(0, 0);
+			g.inlineeditor.focus();
+			//rebuild(startline, endline);
+		}
+		
+		function rebuild(start, end) {
+			let alllines = editor.session.doc.getAllLines();
+			let lines = g.inlineeditor.session.doc.getAllLines();
+			let startline;
+			let endline;
+			//console.log(alllines, lines)
+			for (let i = 0; i < alllines.length; i++) {
+				if (!startline) {
+					if (alllines[i].includes('<script') && alllines[i].includes('we-tab')) {
+						startline = i + 1;
+					}
+				} else {
+					if (alllines[i].includes('</scr' + 'ipt>')) {
+						endline = i - 1;
+						break;
+					}
+				}
+			}
+			alllines.splice(startline, endline - startline + 1, ...lines);
+			for (let i = 0; i < alllines.length - 1; i++) {
+				alllines[i] = alllines[i] + '\n';
+			}
+			alllines.splice(alllines.length - 1, 1);
+			setEditor(alllines.join(''));
+		}
 		
 		editor.session.on('change', function() {
-			slice()
+			g.dirtyTime = Date.now();
+		});
+		
+		g.inlineeditor.session.on('change', function() {
+			if (g.inlineeditor.getValue() != g.inlintabval && g.activetab == "_inlinetab") {
+				rebuild()
+			}
 			g.dirtyTime = Date.now();
 		});
 		
@@ -975,7 +1053,7 @@
 						contents: editor.getValue(),
 						lastchange: firebase.database.ServerValue.TIMESTAMP
 					});
-				} else if (editor.getValue() != g[g.activetab] && g.activetab != '_html' && g.activetab != '_addtab') {
+				} else if (editor.getValue() != g[g.activetab] && g.activetab != '_html' && g.activetab != '_addtab' && g.activetab != '_inlinetab') {
 					console.log('firebasefileup', g.activetab);
 					//g[g.activetab] = editor.getValue();
 					nametoid(g.currentprojectref, 'files', name)
