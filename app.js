@@ -145,7 +145,7 @@ function download(res, uid, projectid, projectname) {
 				//console.log(snapshot.val().files[file].name);
 				archive.append(snapshot.val().files[file].contents, {name: '/' + snapshot.val().name + '/' + snapshot.val().files[file].name});	
 			}
-			archive.append(JSON.stringify(files), {name: '.files.json'});
+			archive.append(JSON.stringify(files), {name: '/' + snapshot.val().name + '/.files.json'});
 			archive.finalize();
 		});
 	} else {

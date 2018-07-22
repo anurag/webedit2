@@ -32,6 +32,7 @@
 				<ul id="projectoptions" class="dropdown-menu">
 					<li><a name='new' href="javascript:;">New Project +</a></li>
 					<li><a name='open' href="javascript:;">Open Project ></a></li>
+					<li><a name='share' href="javascript:;">Share Project</a></li>
 					<li><a name='rename' href="javascript:;">Rename Project</a></li>
 					<li><a style="color:lightgrey" name='clone' href="javascript:;">Clone Project</a></li>
 					<li><a name='zip' href="javascript:;">Download As Zip</a></li>
@@ -191,6 +192,10 @@
 		.tab:hover {
 			background-color: rgb(216, 216, 216);
 		}
+		.tabs {		
+			background: #eee;
+			border-radius: 0 3px 0 0;
+		}
 		#adminlist {
 			top: 34px;
 			right: 120px;
@@ -323,6 +328,7 @@
 				project: {}}
 		settings.global.ref = firebase.database().ref().child('projects/global/-LFApck9n3U1YdCYWKEA/files/-LFApgX73wXqJW4zMz4i');
 		let g = {};		
+		g.shared = [];
 		
 		
 		function parsesettings(settings) {
@@ -448,7 +454,7 @@
 					$('#ispublic').css('text-shadow', 'none');
 					$('#ispublic').attr('title', 'Make Project Public');
 				}
-				if (g.settings.readonly) {
+				if (g.settings.readonly || (!g.shared.includes(g.authemail) && g.uid != g.authuid)) {
 					$('#readonly').css('color', '#a5a5a5');				
 					$('#readonly').css('text-shadow', 'none');
 					$('#readonly').attr('title', 'Make Project Readable');
@@ -457,7 +463,7 @@
 						readOnly: true,
 						highlightActiveLine: false,
 						highlightGutterLine: false
-					})
+					});
 				} else {
 					$('#readonly').css('color', '#337ab7');
 					$('#readonly').css('text-shadow', '-2px 0 white, 0 1px white, 2px 0 white, 0 -1px white');
@@ -467,14 +473,15 @@
 						readOnly: false,
 						highlightActiveLine: true,
 						highlightGutterLine: true
-					})
+					});
+					editor.focus();
 				}
 			});
 		}
 		
 		$('.onoff').on('click', 'span', function(event) {
 			//console.log(event.target.id);
-			if (event.target.id != '')
+			if (event.target.id != '' && g.uid == g.authuid)
 				if (g.settings[event.target.id]) {
 					g.currentprojectref.child('settings').child(event.target.id).set(false);
 				} else {			
@@ -511,16 +518,15 @@
 					findprojectbooleans(g.currentprojectref);
 					runproject(g.uid, g.projectname);
 					g.contents = snapshot.val().contents;
+					g.shared = snapshot.val().shared;
 					if (snapshot.val().activetab) {
 						g.activetab = snapshot.val().activetab;
 					} else g.activetab = '_html';
-					if (g.activetab == '_html') {
-						setEditor(g.contents);
-						slice();
-					}
+					setEditor(g.contents);
+					slice();
 					g.currentprojectref.child('contents').on('value', function(contentsnap) {
 						if (contentsnap.val() != g.contents) {
-							if (g.activetab == '_html' && editor.getValue() != contentsnap.val()) {
+							if (g.activetab == '_inlinetab' || (g.activetab == '_html' && editor.getValue() != contentsnap.val())) {
 								g.contents = contentsnap.val();
 								setEditor(contentsnap.val());
 							}
@@ -531,9 +537,11 @@
 						console.log(activetabsnap.val())
 						if (activetabsnap.val() && activetabsnap.val() != '_html') {
 							let filename = activetabsnap.val().replace('.', '-');
-							console.log(filename);
-							loadtab(filename)
-							addtab(filename);
+							if (!$('#' + filename)[0]) {
+								console.log(filename);
+								loadtab(filename)
+								addtab(filename);							
+							}
 						}
 					});
 					g.currentprojectref.child('files').on('child_changed', function(filechange) {
@@ -541,6 +549,9 @@
 						if (g[filechange.val().name] != filechange.val().contents) {
 							runproject(g.uid, g.projects);
 						}
+					});
+					g.currentprojectref.child('shared').on('value', function(shared) {
+						console.log(g.shared);
 					});
 				});
 			});
@@ -637,8 +648,28 @@
 			}
 		});
 		
+		function addshare() {
+			let email = prompt("Email of user");
+			let emaillist = [];
+			$('#adminlist a').each((i, el) => emaillist.push($(el).text()))
+			console.log(emaillist);
+			while (email && !emaillist.includes(email)) {
+				email = prompt("That user does not exist please");
+			}
+			if (!g.shared) {
+				g.shared = [email];
+			} else {
+				g.shared.push(email);
+			}
+			g.currentprojectref.child('shared').set(g.shared);
+		}
+		
+		
 		$('#projectoptions').on('click', 'a', function (event) {
 			let option = event.target.name;
+			if (option == 'share') {
+				addshare();
+			}
 			if (option == 'new') {
 				event.stopPropagation();
 				create(projects, g.uid, "");
@@ -733,6 +764,10 @@
 		
 		$('.tabs').on('click', 'span', function (event) {
 			event.target.parentNode.remove();
+			console.log(event.target.parentNode.id);
+			let refname = event.target.parentNode.id.replace('-', '.');
+			let ref = g.fileref[refname];
+			ref.off();
 			alignlists();
 			$('#_html').click();
 		});
@@ -741,28 +776,28 @@
 			if (event.target.id) {
 				tabstyle($(this))
 				if (event.target.id == '_inlinetab') {
-					slice();
+					console.log(event.target.id);
 					g.activetab = event.target.id;					
 					top.window.history.replaceState(stateObj, name, '/' + g.uid + '/' + g.projectname + '/?run=edit');
 					swapeditors(true);
-					g.activetab = event.target.id;
 					setEditor(g.contents)
 					console.log(g.inlinetabval)
+					slice();
 				} else {
-					swapeditors(false);					
 					if (event.target.id == '_addtab') {
 						$('#filelist').show();
-						tabstyle($('#_html'))
 					} else if (event.target.id == '_html') {
 						g.activetab = event.target.id;
 						top.window.history.replaceState(stateObj, name, '/' + g.uid + '/' + g.projectname + '/?run=edit');
 						//console.log('2');
 						setEditor(g.contents)
+						swapeditors(false);					
 					} else {
 						g.activetab = event.target.id;
 						top.window.history.replaceState(stateObj, name, g.activetab.replace('-', '.') + '?run=edit');
 						//console.log('edit 1')
 						editfile(g.currentprojectref, 'files', g.activetab)
+						swapeditors(false);					
 					}
 				}
 			}
@@ -780,6 +815,7 @@
 
 		}
 		
+		g.fileref = {};
 		function editfile(ref, uid, name) {
 			//console.log(uid, name);
 			name = name.replace('-', '.');
@@ -791,7 +827,8 @@
 				//console.log(name)
 				nametoref(ref, uid, name)
 				.then(function(fileref) {
-					fileref.on('value', function(snapshot) {
+					g.fileref[name] = fileref;
+					g.fileref[name].on('value', function(snapshot) {
 						let namecomp = name.replace('.', '-');
 						//console.log(namecomp, name, snapshot.val())
 						if (g[name] != snapshot.val().contents) {
@@ -910,7 +947,7 @@
 						//console.log(tabname);
 					}
 				} else {
-					lines[i] = lines[i] + '\n'
+					lines[i] = lines[i]
 					if (lines[i].includes('</scr' + 'ipt>')) {
 						endline = i - 1;
 						break;
@@ -922,9 +959,10 @@
 				$('#_html').after('<button class="tab" id="_inlinetab">' + inlinetabname + '</button>');
 			}
 			g.inlinetabval = lines.slice(startline, endline + 1);
+			for (let i = 0; i < g.inlinetabval.length - 1; i++) {
+				g.inlinetabval[i] = g.inlinetabval[i] + '\n';
+			}
 			g.inlineeditor.setValue(g.inlinetabval.join(""));
-			g.inlineeditor.gotoLine(0, 0);
-			g.inlineeditor.focus();
 			//rebuild(startline, endline);
 		}
 		
@@ -951,22 +989,39 @@
 				alllines[i] = alllines[i] + '\n';
 			}
 			alllines.splice(alllines.length - 1, 1);
-			setEditor(alllines.join(''));
+			console.log('rebuild');
+			editor.setValue(alllines.join(''));
 		}
 		
 		editor.session.on('change', function() {
+			console.log('change');
+			if (g.activetab == '_html' && editor.getValue() != g.contents) {
+				slice();
+			}
 			g.dirtyTime = Date.now();
 		});
 		
+		$(editor.textInput.getElement()).keydown(function () {
+			//console.log('key')
+			if (dirtyTime) dirtyTime = Date.now();
+		});
+		
+		$(g.inlineeditor.textInput.getElement()).keydown(function () {
+			//console.log('key')
+			if (dirtyTime) dirtyTime = Date.now();
+		});
+
 		g.inlineeditor.session.on('change', function() {
 			if (g.inlineeditor.getValue() != g.inlintabval && g.activetab == "_inlinetab") {
+				console.log('rebuild')
 				rebuild()
 			}
 			g.dirtyTime = Date.now();
 		});
 		
 		$('#userbutton').click(function(event) {
-			if (g.uid) {
+			console.log('userbutton');
+			if (g.authuid) {
 
 			} else {
 				let provider = new firebase.auth.GoogleAuthProvider();
@@ -980,6 +1035,7 @@
 			if (user) {
 				$('#userbutton').html(user.email.split("@")[0])
 				g.cookieId = getCook('cookieId');
+				g.authemail = user.email;
 				g.authuid = user.uid;
 				root.child('cookieToUid').child(g.cookieId).set(g.authuid);
 				loadadmins(g.authuid);
@@ -1046,7 +1102,7 @@
 				let name = g.activetab.replace('-', '.')
 				//console.log(name)
 				g.dirtyTime = null;
-				if (editor.getValue() != g.contents && g.activetab == '_html') {
+				if (editor.getValue() != g.contents && (g.activetab == '_html' || g.activetab == '_inlinetab')) {
 					console.log('firebaseprojectup');
 					//g.contents = editor.getValue();
 					g.currentprojectref.update({
