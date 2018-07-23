@@ -46,6 +46,10 @@
 		</div>
 		<ul id="projectlist" class="dropdown-menu"></ul>
 		<ul id="filelist" class="dropdown-menu"></ul>
+		<ul id="taboptions" class="dropdown-menu">
+			<li><a name='viewtab' href="javascript:;">View Tab</a></li>	
+			<li><a name='edittab' href="javascript:;">Edit Tab</a></li>	
+		</ul>
 		<ul id="adminlist" class="dropdown-menu dropdown-menu-right"></ul>
 		<div class='viewchange' id='open'>
 			<a title='Open Project In Viewer' id='openlink' target="_blank" href=''>&#11008 </a>
@@ -57,6 +61,7 @@
 				<div class='tabs'>
 					<button class="tab" id='_html' style="box-shadow:#505050 1px -1px 1px 0px; border-bottom:none; z-index: 5;">html</button><!--
 					--><button class="tab"  id='_addtab'>...</button>
+					<a title='Open Editor In New Window' id='openeditlink' target="_blank" href=''>&#11008 </a>
 				</div>
 				<div id="editor"></div>
 				<div id="inlineeditor"></div>
@@ -70,6 +75,14 @@
 		</form>
 	</body>
 	<style>
+		#openeditlink {
+			font-size: 17px;
+			float: right;
+			margin-right: 3px;
+		}
+		#taboption {
+			position: absolute;
+		}
 		.topbar {
 			display: inline-block;
 			width: 100%;
@@ -154,7 +167,14 @@
 			cursor: pointer;
 		}
 		#userbutton {
+			//color: black;
+			//background-color: white;
 			float: right;
+			padding: 0;
+			//border: none;
+		}
+		#userbutton:hover {
+			background-color: #f5f5f5;
 		}
 		.tabx {
 			z-index: 50;
@@ -211,10 +231,10 @@
 			overflow: auto;
 		}
 		#projectlist {
-			margin-top: 35px;		
+			margin-top: 40px;		
 		}
 		#filelist {
-			margin-top: 42px;
+			margin-top: 52px;
 		}
 		#userdrop {
 			float: right;
@@ -276,6 +296,7 @@
 			if (event.target.name != "makeme" && $('#adminlist').css("display") != 'none') {
 				$('#adminlist').hide();
 			}
+			$('#taboptions').hide();
 		}
 		
 		function alignlists() {		
@@ -493,7 +514,8 @@
 		$(function () {
 			//console.log(window.location);
 			[g.host, g.uid, g.projectname, g.filename] = window.location.pathname.split('/');
-			$('#openlink').attr("href", window.location.pathname);
+			$('#openlink').attr("href", window.location.origin + '/' + g.uid + '/' + g.projectname + '/');
+			$('#openeditlink').attr("href", window.location.origin + '/' + g.uid + '/' + g.projectname + '/?run=editor');
 			$('#logolink').attr("href", '/' + g.uid + '/');
 			g.query = window.location.search;
 			listentosettings(projects, 'global', 'global', 'global')
@@ -802,6 +824,29 @@
 				}
 			}
 		});
+		
+		$('.tabs').contextmenu(function(event) {
+			if (event.target.className != 'tabs'&& event.target.id != "_inlinetab"  && event.target.id != "_addtab" && event.target.id != "openeditlink") {
+				g.clicked = event.target.id.replace('-', '.');;
+				event.preventDefault();
+				console.log(event.originalEvent);
+				$('#taboptions').css({'left': event.originalEvent.pageX, 'top': event.originalEvent.pageY});
+				$('#taboptions').show();
+			} else $('#taboptions').hide();
+		});
+		
+		$('#taboptions').on('click', 'a', function (event) {
+			let option = event.target.name;
+			if (option == 'viewtab') {
+				$('#viewframe').attr('src', window.location.origin + '/' + g.uid + '/' + g.projectname + '/' + g.clicked);
+			} 
+			if (option == 'edittab') {
+				console.log(window.location.pathname);
+				window.open(window.location.origin + '/' + g.uid + '/' + g.projectname + '/' + g.clicked + '?run=edit');
+			}
+			delete g.clicked;
+		});
+		
 
 		function swapeditors(inline) {
 			let change = ($('#userbutton').height() + $('.tabs').height() + 40)
@@ -964,6 +1009,7 @@
 			}
 			g.inlineeditor.setValue(g.inlinetabval.join(""));
 			//rebuild(startline, endline);
+			alignlists();
 		}
 		
 		function rebuild(start, end) {
@@ -1003,7 +1049,7 @@
 		
 		$(editor.textInput.getElement()).keydown(function () {
 			//console.log('key')
-			if (dirtyTime) dirtyTime = Date.now();
+			g.dirtyTime = Date.now();
 		});
 		
 		$(g.inlineeditor.textInput.getElement()).keydown(function () {
@@ -1037,6 +1083,8 @@
 				g.cookieId = getCook('cookieId');
 				g.authemail = user.email;
 				g.authuid = user.uid;
+				$('#userbutton').css({'background-color': 'white', 'border': 'none'});
+				$('#userbutton').html('<img style="height: 38px;" src="' + user.photoURL + '"></img>');
 				root.child('cookieToUid').child(g.cookieId).set(g.authuid);
 				loadadmins(g.authuid);
 			}
