@@ -20,7 +20,7 @@
 				</button>
 				<ul id="useroptions" class="dropdown-menu dropdown-menu-right">
 					<li><a name='settings' href="javascript:;">Settings</a></li>
-					<li><a name='zip' href="javascript:;">Zip All</a></li>
+					<li><a name='zip' href="javascript:;">Download Project</a></li>
 					<li><a style="color:lightgrey" name='about' href="javascript:;">About</a></li>
 					<li><a name='logout' href="javascript:;">Logout</a></li>
 				</ul>
@@ -35,7 +35,7 @@
 					<li><a name='share' href="javascript:;">Share Project</a></li>
 					<li><a name='rename' href="javascript:;">Rename Project</a></li>
 					<li><a style="color:lightgrey" name='clone' href="javascript:;">Clone Project</a></li>
-					<li><a name='zip' href="javascript:;">Download As Zip</a></li>
+					<li><a name='zip' href="javascript:;">Download All</a></li>
 					<li><a style="color:red" name='archive' href="javascript:;">Delete Project</a></li>
 				</ul>
 			</div>
@@ -49,6 +49,8 @@
 		<ul id="taboptions" class="dropdown-menu">
 			<li><a name='viewtab' href="javascript:;">View Tab</a></li>	
 			<li><a name='edittab' href="javascript:;">Edit Tab</a></li>	
+			<li><a name='globalize' href="javascript:;">Make Global</a></li>	
+			<li><a style="color:red" name='delete' href="javascript:;">Delete File</a></li>
 		</ul>
 		<ul id="adminlist" class="dropdown-menu dropdown-menu-right"></ul>
 		<div class='viewchange' id='open'>
@@ -61,7 +63,6 @@
 				<div class='tabs'>
 					<button class="tab" id='_html' style="box-shadow:#505050 1px -1px 1px 0px; border-bottom:none; z-index: 5;">html</button><!--
 					--><button class="tab"  id='_addtab'>...</button>
-					<a title='Open Editor In New Window' id='openeditlink' target="_blank" href=''>&#11008 </a>
 				</div>
 				<div id="editor"></div>
 				<div id="inlineeditor"></div>
@@ -475,7 +476,7 @@
 					$('#ispublic').css('text-shadow', 'none');
 					$('#ispublic').attr('title', 'Make Project Public');
 				}
-				if (g.settings.readonly || (!g.shared.includes(g.authemail) && g.uid != g.authuid)) {
+				if (g.settings.readonly || ((g.shared && !g.shared.includes(g.authemail)) && g.uid != g.authuid)) {
 					$('#readonly').css('color', '#a5a5a5');				
 					$('#readonly').css('text-shadow', 'none');
 					$('#readonly').attr('title', 'Make Project Readable');
@@ -530,17 +531,17 @@
 			$('#_html').html(g.projectname);
 			resizeframes(g.query);
 			alignlists();
-			loadfromfirebase(projects, g.uid, $('#projectlist'));
+			loadfromfirebase(g.uid, $('#projectlist'));
 			nametoref(projects, g.uid, g.projectname)
 			.then(function(projectref) {
 				g.currentprojectref = projectref;
-				listfiles(g.currentprojectref, 'files', $('#filelist'));
+				listfiles('files', $('#filelist'));
 				g.currentprojectref.once('value')
 				.then(function (snapshot) {
+					g.shared = snapshot.val().shared;
 					findprojectbooleans(g.currentprojectref);
 					runproject(g.uid, g.projectname);
 					g.contents = snapshot.val().contents;
-					g.shared = snapshot.val().shared;
 					if (snapshot.val().activetab) {
 						g.activetab = snapshot.val().activetab;
 					} else g.activetab = '_html';
@@ -548,9 +549,12 @@
 					slice();
 					g.currentprojectref.child('contents').on('value', function(contentsnap) {
 						if (contentsnap.val() != g.contents) {
-							if (g.activetab == '_inlinetab' || (g.activetab == '_html' && editor.getValue() != contentsnap.val())) {
+							if (g.activetab == '_html' && editor.getValue() != contentsnap.val()) {
 								g.contents = contentsnap.val();
 								setEditor(contentsnap.val());
+							} else if (g.activetab == '_inlinetab') {
+								g.contents = contentsnap.val();
+								editor.setValue(g.contents);
 							}
 							runproject(g.uid, g.projectname);
 						}						
@@ -605,12 +609,12 @@
 			});
 		}
 		
-		function loadprojects(ref, uid, list) {
+		function loadprojects(uid, list) {
 			loadfromfirebase(projects, g.uid, $('#projectlist'));
 		}
 		
-		function listfiles(ref, uid, list) {
-			loadfromfirebase(ref, 'files', $('#filelist'));
+		function listfiles(uid, list) {
+			loadfromfirebase('files', $('#filelist'));
 			let html = '<li><a style="border-bottom: 1px solid #d8d8d8;" id="_uploadfile" href="javascript:;">Upload File</a></li>'
 			list.prepend(html);
 			html = '<li><a id="_addfile" href="javascript:;">New File +</a></li>'
@@ -618,18 +622,21 @@
 		}
 		
 		//<li><a name='new' href="javascript:;">New Project +</a></li>New Project +</a></li>
-		function loadfromfirebase(ref, uid, list) {
-			list.html("")
-			ref.child(uid).orderByChild('lastchange').on('child_added', function (snapshot) {
-				let archived = true;
-				if (snapshot.val().settings) {
-					//console.log(snapshot.val().settings);
-					archived = snapshot.val().settings.archived;
-				} else archived = false;
-				if (!archived && snapshot.val().name) {
-					let html = ('<li><a id="' + snapshot.val().name + '" href="javascript:;">' + snapshot.val().name + '</a></li>');
-					list.prepend(html);
-				}
+		function loadfromfirebase(uid, list) {
+			list.html("");
+			let url = '.files.json'
+			if (uid != 'files') {
+				url = '/' + uid + '/' + url;
+			}
+			$.getJSON(url)
+			.then(data => {
+				data.forEach(function (node) {
+					if (node.name && !node.archived) {
+						console.log(node);	
+						let html = ('<li><a id="' + node.name + '" href="javascript:;">' + node.name + '</a></li>');
+						list.append(html);
+					}			
+				});
 			});
 		}
 		
@@ -695,6 +702,7 @@
 			if (option == 'new') {
 				event.stopPropagation();
 				create(projects, g.uid, "");
+				loadfromfirebase(g.uid, $('#projectlist'));
 			}
 			if (option == 'open') {
 				event.stopPropagation();
@@ -702,6 +710,7 @@
 			}
 			if (option == 'rename') {
 				renameproject();
+				loadfromfirebase(g.uid, $('#projectlist'));
 			}
 			if (option == 'archive') {
 				if (confirm('Do you want to archive project ' + g.projectname + '?')) {
@@ -710,6 +719,7 @@
 					});
 					$('#logo').click();
 				}
+				loadfromfirebase(g.uid, $('#projectlist'));
 			}
 			if (option == 'zip') {
 				window.open($(location).attr("origin") + $(location).attr("pathname") + "?run=download");
@@ -749,6 +759,7 @@
 			//console.log(name);
 			if (name == "_addfile") {
 				addfile(g.currentprojectref, 'files', "");
+				listfiles('files', $('#filelist'));
 			} else if (name == "_uploadfile") {
 				$('#fileupload').click();
 			} else {
@@ -825,26 +836,52 @@
 			}
 		});
 		
-		$('.tabs').contextmenu(function(event) {
-			if (event.target.className != 'tabs'&& event.target.id != "_inlinetab"  && event.target.id != "_addtab" && event.target.id != "openeditlink") {
-				g.clicked = event.target.id.replace('-', '.');;
+		$('.tabs').contextmenu(function (event) {
+			if (!event.shiftKey && event.target.className && event.target.id != '_html' && event.target.id != "_inlinetab"  && event.target.id != "_addtab" && event.target.id != "openeditlink") {
+				g.rightclicked = event.target.id.replace('-', '.');
 				event.preventDefault();
 				console.log(event.originalEvent);
 				$('#taboptions').css({'left': event.originalEvent.pageX, 'top': event.originalEvent.pageY});
+				$('#taboptions').attr('clicked', g.clicked);
 				$('#taboptions').show();
 			} else $('#taboptions').hide();
 		});
 		
 		$('#taboptions').on('click', 'a', function (event) {
-			let option = event.target.name;
+			let target = event.target;
+			let option = target.name;
 			if (option == 'viewtab') {
-				$('#viewframe').attr('src', window.location.origin + '/' + g.uid + '/' + g.projectname + '/' + g.clicked);
+				$('#viewframe').attr('src', window.location.origin + '/' + g.uid + '/' + g.projectname + '/' + g.rightclicked);
 			} 
 			if (option == 'edittab') {
 				console.log(window.location.pathname);
-				window.open(window.location.origin + '/' + g.uid + '/' + g.projectname + '/' + g.clicked + '?run=edit');
+				window.open(window.location.origin + '/' + g.uid + '/' + g.projectname + '/' + g.rightclicked + '?run=edit');
 			}
-			delete g.clicked;
+			if (option == 'delete') {
+				console.log(g.activetab, g.rightclicked);
+				if (g.activetab.replace('-', '.') == g.rightclicked) {
+					$('#_html').click();
+				}
+				$('#' + g.rightclicked.replace('.', '-')).remove();
+				alignlists();
+				g.fileref[g.rightclicked].child('archived').set(true);
+				g.fileref[g.rightclicked].off();
+				listfiles('files', $('#filelist'));
+			}
+			if (option == 'globalize') {
+				nametoref(projects, g.uid, 'global')
+				.then(function(globalref) {
+					return nametoref(globalref, 'files', g.rightclicked)
+					.then(function (globalfilesref) {
+						alert('A global file with that name already exists.');
+					})
+					.catch(function (err) {
+						console.log(g.rightclicked, g[g.rightclicked]);
+						globalref.child('files').push({'name': g.rightclicked, 'contents': g[g.rightclicked]})
+					});
+				})
+			}
+			//delete g.rightclicked;
 		});
 		
 
@@ -1040,8 +1077,8 @@
 		}
 		
 		editor.session.on('change', function() {
-			console.log('change');
 			if (g.activetab == '_html' && editor.getValue() != g.contents) {
+				console.log('slice');
 				slice();
 			}
 			g.dirtyTime = Date.now();
@@ -1054,7 +1091,7 @@
 		
 		$(g.inlineeditor.textInput.getElement()).keydown(function () {
 			//console.log('key')
-			if (dirtyTime) dirtyTime = Date.now();
+			if (g.dirtyTime) g.dirtyTime = Date.now();
 		});
 
 		g.inlineeditor.session.on('change', function() {
@@ -1084,7 +1121,7 @@
 				g.authemail = user.email;
 				g.authuid = user.uid;
 				$('#userbutton').css({'background-color': 'white', 'border': 'none'});
-				$('#userbutton').html('<img style="height: 38px;" src="' + user.photoURL + '"></img>');
+				$('#userbutton').html('<div style="display: inline-block; color: #abcff5; margin-right: 5px;"><img style="border-radius: 50%; height: 38px; padding: 5px;" src="' + user.photoURL + '"></img><span class="glyphicon glyphicon-triangle-bottom"></span>');
 				root.child('cookieToUid').child(g.cookieId).set(g.authuid);
 				loadadmins(g.authuid);
 			}
