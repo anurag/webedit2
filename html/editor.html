@@ -1,4 +1,3 @@
-
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<script src="/src/ace.js" type="text/javascript" charset="utf-8"></script>
@@ -476,7 +475,8 @@
 					$('#ispublic').css('text-shadow', 'none');
 					$('#ispublic').attr('title', 'Make Project Public');
 				}
-				if (g.settings.readonly || ((g.shared && !g.shared.includes(g.authemail)) && g.uid != g.authuid)) {
+				console.log(g.admins)
+				if (g.settings.readonly || (!g.admins[g.uid] && (g.shared && !g.shared.includes(g.authemail)) && g.uid != g.authuid)) {
 					$('#readonly').css('color', '#a5a5a5');				
 					$('#readonly').css('text-shadow', 'none');
 					$('#readonly').attr('title', 'Make Project Readable');

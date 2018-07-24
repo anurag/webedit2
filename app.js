@@ -246,6 +246,20 @@ function createfilelist(ref, uid, projectname) {
 	}
 }
 
+function findadminfile(ref, uid, filename) {
+	console.log('findadminfile', uid, filename);
+	return nametoref(ref, uid, 'admin')
+	.then(function (adminref){
+		return nametoref(adminref, 'files', filename)
+	})
+	.then(function (fileref) {
+		return fileref.once('value')
+	})
+	.then(function (snapshot) {
+		return snapshot.val();
+	});
+}
+
 function serve(req, res) {
 	let query = req.query;
 	let [host, uid, projectname, filename] = req.path.split('/')
@@ -296,11 +310,17 @@ function serve(req, res) {
 					res.send(snapshot.val().contents);
 				});				
 			} else if (query.run == 'edit' || query.run == 'editor') {
-				let lastfile = null;
-				if (filename) lastfile = filename;
-				nametoref(projects, uid, projectname)
-				.then((projectref) => projectref.child('activetab').set(lastfile));
-				res.sendFile('editor.html', {root: __dirname + "/html/"});				
+				findadminfile(projects, '0GZ6h7paIPSfwN6kvMqxv85p9XX2', 'editor.html')
+				.then(function (file) {					
+					console.log(file)
+					//res.sendFile('editor.html', { root: __dirname + '/html'});
+					nametoref(projects, uid, projectname)
+					.then(function(projectref) {
+						projectref.child('activetab').set(filename);
+						res.set('content-type', 'text/html');
+						res.send(file.contents);					
+					});
+				});
 			} else if (!filename) {
 				//console.log('RUN');
 				//?run=
