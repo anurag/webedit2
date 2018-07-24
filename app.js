@@ -27,6 +27,7 @@ const bucket = storage.bucket('we.nerq.com');
 const app = express();
 let g = {"cookieToUid": {}};
 const PORT = process.env.PORT || 8080;
+console.log('port', PORT);
 
 root.child('admin/admins').on('value', function (snapshot) {
 	g.admins = snapshot.val();
