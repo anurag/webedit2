@@ -324,10 +324,10 @@ function serve(req, res) {
 				findadminfile(projects, '0GZ6h7paIPSfwN6kvMqxv85p9XX2', 'editor.html')
 				.then(function (file) {					
 					console.log(file)
-					//res.sendFile('editor.html', { root: __dirname + '/html'});
 					nametoref(projects, uid, projectname)
 					.then(function(projectref) {
 						projectref.child('activetab').set(filename);
+						//res.sendFile('editor.html', { root: __dirname + '/html'});
 						res.set('content-type', 'text/html');
 						res.send(file.contents);					
 					});
@@ -351,36 +351,29 @@ function serve(req, res) {
 					nametoref(projectref, 'files', filename)
 					.then(function (fileref) {
 						fileref.once('value', function (snapshot) {
+							if (snapshot.val().archived) {								
+								checkglobalfiles(projects, uid, filename)
+								.then(function (file) {
+									sendwithtype(res, projects, uid, projectname, file.name, file.contents);							
+								})
+							} else {
+								sendwithtype(res, projects, uid, projectname, snapshot.val().name, snapshot.val().contents);							
+							}
 							//console.log('found')
-							sendwithtype(res, projects, uid, projectname, snapshot.val().name, snapshot.val().contents);
 						});
 					})
 					.catch(function (err) {
-						let file = bucket.file('/' + uid + '/' + projectname + '/' + filename);
-						//console.log('test');
-						let filereadstream = file.createReadStream();
-						//console.log('test2');
-						filereadstream.pipe(res);
-						filereadstream.on('error', function (err2) {
-							if (query.create == 'yes') {
-								nametoref(projects, '0GZ6h7paIPSfwN6kvMqxv85p9XX2', 'admin')
-								.then(projectref => nametoobject(projectref, 'files', 'template.html'))
-								.then(function (fileobj) {
-									ref.child('files').push({
-										contents: fileobj.contents,
-										name: filename,
-										lastchange: firebase.database.ServerValue.TIMESTAMP,
-									});
-									sendwithtype(res, projects, uid, projectname, filename, fileobj.contents);
-								});								
-							} else if (query.create == 'maybe') {
-								nametoref(projects, '0GZ6h7paIPSfwN6kvMqxv85p9XX2', 'admin')
-								.then(projectref => nametoobject(projectref, 'files', 'notfound.html'))
-								.then(fileobj => sendwithtype(res, fileobj.name, fileobj.contents));
-							} else {
-								res.status(404)
-								res.send('file not found')													
-							}
+						checkglobalfiles(projects, uid, filename)
+						.then(function(file) {
+							sendwithtype(res, projects, uid, projectname, file.name, file.contents);							
+						})
+						.catch(function(error) {
+							let file = bucket.file('/' + uid + '/' + projectname + '/' + filename);
+							let filereadstream = file.createReadStream();
+							filereadstream.pipe(res);
+							filereadstream.on('error', function (err2) {
+								createquery(res, projects, query, uid, projectname, filename)
+							});
 						});
 					});
 				});
@@ -389,6 +382,55 @@ function serve(req, res) {
 				res.send('Not found')			
 			}
 		}
+	});
+}
+
+function createquery(res, ref, query, uid, projectname, filename) {
+	let projects = ref;
+	if (query.create == 'yes') {
+		console.log('1')
+		nametoref(ref, '0GZ6h7paIPSfwN6kvMqxv85p9XX2', 'admin')
+		.then(function (adminref) {
+			console.log('2')
+			nametoobject(adminref, 'files', 'template.html')
+			.then(function (fileobj) {
+				console.log('3')
+				nametoref(projects, uid, projectname)
+				.then(function (projectref) {
+					projectref.child('files').push({
+						contents: fileobj.contents,
+						name: filename,
+						lastchange: firebase.database.ServerValue.TIMESTAMP,
+					});
+					sendwithtype(res, ref, uid, projectname, filename, fileobj.contents);					
+				});
+			});								
+		})
+	} else if (query.create == 'maybe') {
+		nametoref(ref, '0GZ6h7paIPSfwN6kvMqxv85p9XX2', 'admin')
+		.then(adminref => nametoobject(adminref, 'files', 'notfound.html'))
+		.then(function (fileobj){
+			res.send(fileobj.contents);
+		});
+	} else {
+		res.status(404)
+		res.send('Not found')											
+	}
+}
+
+function checkglobalfiles(ref, uid, filename) {
+	return nametoref(ref, uid, 'global')
+	.then(function (globalref) {
+		return nametoref(globalref, 'files', filename)
+	})
+	.then(function (fileref) {
+		return fileref.once('value')
+	})
+	.then(function (snapshot) {
+		return snapshot.val();
+	})
+	.catch(function (err) {
+		throw 'file not found';
 	});
 }
 
@@ -402,7 +444,7 @@ function sendwithtype(res, ref, uid, projectname, name, contents) {
 		.then(function(projectref) {
 			console.log(type)
 			projectref.child('activetab').set(name);
-		});
+		})
 	}
 	res.set('content-type', 'text/'+type);
 	res.send(contents);							
