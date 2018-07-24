@@ -43,6 +43,7 @@ function updatecookietouid(snapshot) {
 }
 
 app.use((req, res, next) => {
+	console.log('vhost', req.vhost);
 	if (PORT === 80 && req.vhost === 'stage.nerq.com') res.redirect(req.vhost + ':8080');
 	next();
 });
