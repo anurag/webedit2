@@ -44,7 +44,7 @@ function updatecookietouid(snapshot) {
 app.use((req, res, next) => {
 	if (req.vhost === 'stage.nerq.com') res.redirect(req.vhost + ':8080');
 	next();
-}
+});
 
 app.use(fileupload());
 app.use(cookieParser());
