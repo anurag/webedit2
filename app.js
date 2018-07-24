@@ -47,6 +47,7 @@ app.use((req, res, next) => {
 	if (PORT == 80 && req.get('Host') == 'stage.nerq.com') {
 		console.log('vhosttru', req.get('Host'));
 		res.redirect(req.get('Host') + ':8080');
+		return;
 	}
 	next();
 });
