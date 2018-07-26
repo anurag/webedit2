@@ -168,12 +168,15 @@ function download(res, uid, projectid, projectname) {
 				let files = [];
 				if (snap.val().contents && snap.val().settings.archived != true) {
 					archive.append('', {name: snap.val().name + '/'})
-					archive.append(snap.val().contents, {name: '/' + snap.val().name + '/' + 'index.html'});	
+					archive.append(snap.val().contents, {name: '/' + snap.val().name + '/' + 'index.html'});
 					for (let file in snap.val().files) {
-						files.push({'name': snap.val().files[file].name, 'lastchange': snap.val().files[file].lastchange});
+						files.push({'name': snap.val().files[file].name, 'lastchange': snap.val().files[file].lastchange, 'archived': snap.val().files[file].archived});
 						//console.log(snap.val().files[file].name);
-						archive.append(JSON.stringify(files), {name: '/' + snap.val().name + '/.files'});
 						archive.append(snap.val().files[file].contents, {name: '/' + snap.val().name + '/' + snap.val().files[file].name});	
+					}
+					if (files.toString()) {
+						console.log(files);
+						archive.append(JSON.stringify(files), {name: '/' + snap.val().name + '/.files.json'});					
 					}
 				}
 			});
@@ -326,7 +329,13 @@ function serve(req, res) {
 					console.log(file)
 					nametoref(projects, uid, projectname)
 					.then(function(projectref) {
-						projectref.child('activetab').set(filename);
+						let timecode = Date.now();
+						console.log(timecode);
+						console.log('filename', filename);
+						if (!filename) filename = '_html';
+						console.log('filename2', filename);
+						projectref.child('activetab').update({name: filename, instance: timecode});							
+						res.cookie('instance', timecode);
 						//res.sendFile('editor.html', { root: __dirname + '/html'});
 						res.set('content-type', 'text/html');
 						res.send(file.contents);					
@@ -357,7 +366,9 @@ function serve(req, res) {
 									sendwithtype(res, projects, uid, projectname, file.name, file.contents);							
 								})
 							} else {
-								sendwithtype(res, projects, uid, projectname, snapshot.val().name, snapshot.val().contents);							
+								if (filename.charAt(0) != '.') {
+									sendwithtype(res, projects, uid, projectname, snapshot.val().name, snapshot.val().contents);															
+								} else res.send(snapshot.val().contents);
 							}
 							//console.log('found')
 						});
@@ -442,8 +453,8 @@ function sendwithtype(res, ref, uid, projectname, name, contents) {
 	if (type == 'html') {
 		nametoref(ref, uid, projectname)
 		.then(function(projectref) {
-			console.log(type)
-			projectref.child('activetab').set(name);
+			let timecode = Date.now();
+			projectref.child('activetab').update({name: name, instance: 'none'});							
 		})
 	}
 	res.set('content-type', 'text/'+type);
