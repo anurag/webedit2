@@ -44,12 +44,12 @@ function updatecookietouid(snapshot) {
 
 app.use((req, res, next) => {
 	console.log('vhost', req.get('Host'));
-	if (PORT == 80 && req.get('Host') == 'stage.nerq.com') {
+	if (PORT != 8081 && req.get('Host') == 'stage.nerq.com') {
 		console.log('vhosttru', req.get('Host'));
 		res.redirect('//' + req.get('Host') + ':8081');
 		return;
 	}
-	if (PORT == 80 && req.get('Host') == 'dev.nerq.com') {
+	if (PORT != 8080 && req.get('Host') == 'dev.nerq.com') {
 		console.log('vhosttru', req.get('Host'));
 		res.redirect('//' + req.get('Host') + ':8080');
 		return;
