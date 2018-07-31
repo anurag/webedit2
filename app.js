@@ -120,7 +120,7 @@ function readable(ref, uid, project, file) {
 	if (!project && (uid == g.uid || g.admins[g.uid])) return Promise.resolve(true);
 	return nametoid(ref, uid, project)
 	.then(function (projectId) {
-		console.log('projectId', projectId)
+		//console.log('projectId', projectId)
 		if (!projectId && !g.admins[g.uid]) return false;
 		if (g.admins[g.uid]) return true;
 		return ref.child(uid).child(projectId).once('value')
@@ -242,12 +242,15 @@ function createfilelist(ref, uid, projectname) {
 		.then(function (snapshot) {
 			let files = snapshot.val();
 			let results = [];
-			Object.values(files).forEach(function (file) {
-				//console.log(snapshot.val());
-				delete file.contents;
-				//console.log('file', file)
-				results.push(file);							
-			});
+			console.log(files)
+			if (files) {
+				Object.values(files).forEach(function (file) {
+					//console.log(snapshot.val());
+					delete file.contents;
+					//console.log('file', file)
+					results.push(file);							
+				});			
+			}
 			return JSON.stringify(results);
 		});
 	} else {
@@ -357,7 +360,7 @@ function serve(req, res) {
 					}
 				});
 			} else if (filename) {
-				//console.log('DEPENDANCY');
+				console.log('DEPENDANCY');
 				let ref;
 				nametoref(projects, uid, projectname)
 				.then(function (projectref) {
@@ -388,6 +391,7 @@ function serve(req, res) {
 							let filereadstream = file.createReadStream();
 							filereadstream.pipe(res);
 							filereadstream.on('error', function (err2) {
+								console.log(err2);
 								createquery(res, projects, query, uid, projectname, filename)
 							});
 						});
