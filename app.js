@@ -159,36 +159,104 @@ function download(res, uid, projectid, projectname) {
 			for (let file in snapshot.val().files) {
 				files.push({'name': snapshot.val().files[file].name, 'lastchange': snapshot.val().files[file].lastchange});
 				//console.log(snapshot.val().files[file].name);
-				archive.append(snapshot.val().files[file].contents, {name: '/' + snapshot.val().name + '/' + snapshot.val().files[file].name});	
+				if (!snapshot.val().files[file].archived) {
+					archive.append(snapshot.val().files[file].contents, {name: '/' + snapshot.val().name + '/' + snapshot.val().files[file].name});					
+				}
 			}
-			archive.append(JSON.stringify(files), {name: '/' + snapshot.val().name + '/.files.json'});
-			archive.finalize();
+//			let globalfiles = [];
+			searchfordependancies(uid, snapshot.val().name, snapshot.val().contents)
+			.then(function (included) {
+				for (let i = 0; i < included.length; i++) {
+					console.log('INCLUDED', included[i].name);
+					archive.append(included[i].contents, {name: '/' + snapshot.val().name + '/' + included[i].name});					
+				};
+				archive.append(JSON.stringify(files), {name: '/' + snapshot.val().name + '/.files.json'});
+				archive.finalize();
+			});
 		});
 	} else {
 		projects.child(uid).once('value')
 		.then(function (snapshot) {
+			let projectsfile = [];
 			let projects = [];
 			snapshot.forEach(function (snap) {
-				projects.push({'name': snap.val().name, 'lastchange': snap.val().lastchange, 'archived': snap.val().archived})
-				let files = [];
-				if (snap.val().contents && snap.val().settings.archived != true) {
-					archive.append('', {name: snap.val().name + '/'})
-					archive.append(snap.val().contents, {name: '/' + snap.val().name + '/' + 'index.html'});
-					for (let file in snap.val().files) {
-						files.push({'name': snap.val().files[file].name, 'lastchange': snap.val().files[file].lastchange, 'archived': snap.val().files[file].archived});
-						//console.log(snap.val().files[file].name);
-						archive.append(snap.val().files[file].contents, {name: '/' + snap.val().name + '/' + snap.val().files[file].name});	
-					}
-					if (files.toString()) {
-						console.log(files);
-						archive.append(JSON.stringify(files), {name: '/' + snap.val().name + '/.files.json'});					
-					}
+				if (snap.val().name) {
+					projects.push(snap.val());
+					projectsfile.push({'name': snap.val().name, 'lastchange': snap.val().lastchange, 'archived': snap.val().archived})
 				}
 			});
-			archive.append(JSON.stringify(projects), {name: '.files.json'});			
-			archive.finalize();			
+			let promises = projects.map(function (file) {
+				return searchfordependancies(uid, file.name, file.contents).then(function (included) {
+					let files = [];
+					if (file.contents && file.settings.archived != true) {
+						archive.append('', {name: file.name + '/'})
+						archive.append(file.contents, {name: '/' + file.name + '/' + 'index.html'});
+						for (let key in file.files) {
+							files.push({'name': file.files[key].name, 'lastchange': file.files[key].lastchange, 'archived': file.files[key].archived});
+							//console.log(snap.val().files[file].name);
+							if (!file.files[key].archived) {
+								archive.append(file.files[key].contents, {name: '/' + file.name + '/' + file.files[key].name});	
+							}
+						}
+						if (files.toString()) {
+							//console.log(files);
+							archive.append(JSON.stringify(files), {name: '/' + file.name + '/.files.json'});					
+						}
+					};
+					return [included, file.name];
+				});
+			});
+			Promise.all(promises).then(function (included) {
+				//console.log('FINISHED', included);
+				included.forEach(function (projectincludes) {
+					if (projectincludes[0]) {
+						//console.log('INCLUDED 1', included[i][1], included[i][0]);;
+						let includes = projectincludes[0];
+						includes.forEach(function (globalfile) {
+							//console.log(included[i][1])
+							archive.append(globalfile.contents, {name: '/' + projectincludes[1] + '/' + globalfile.name});					
+						});
+					}
+				});
+			})
+			.then(function() {
+				archive.append(JSON.stringify(projectsfile), {name: '.files.json'});			
+				archive.finalize();	
+			});
 		});
 	}
+}
+
+function searchfilefordependancies(globals, contents) {
+	//console.log('globalfile', globals)
+	let included = [];
+	for (let i = 0; i < globals.length; i++) {
+		//console.log(globals[file])
+		if (contents.includes(globals[i].name)) {
+			//console.log('includes', globals[file].name)
+			included.push({name: globals[i].name, contents: globals[i].contents});
+		}
+	}
+	if (!included) return false;
+	return included;
+}
+
+function searchfordependancies(uid, filename, contents) {
+	let globals = [];
+	return nametoref(root.child('projects'), uid, 'global')
+	.then(function (globalref) {
+		return globalref.child('files').once('value');
+	})
+	.then (function (snapshot) {
+		snapshot.forEach(function (file) {
+			//console.log('name', file.val().name);
+			globals.push({name: file.val().name, contents: file.val().contents});
+		})
+		return searchfilefordependancies(globals, contents)
+	})
+	.then(function (included) {
+		return included;
+	});
 }
 
 function nametosnapshot(ref, uid, name) {
@@ -328,7 +396,7 @@ function serve(req, res) {
 					download(res, uid, nametoid, projectname)
 				});
 			} else if (query.run == 'viewer') {
-				projects.child('global').child('-LFApck9n3U1YdCYWKEA').child('files' ).child('viewer.html').once('value', function (snapshot) {
+				projects.child('global').child('-LFApck9n3U1YdCYWKEA').child('files' ).child('-LFVCiLyPZucebTpYwog').once('value', function (snapshot) {
 					res.send(snapshot.val().contents);
 				});				
 			} else if (query.run == 'edit' || query.run == 'editor') {
@@ -390,6 +458,7 @@ function serve(req, res) {
 							let file = bucket.file('/' + uid + '/' + projectname + '/' + filename);
 							let filereadstream = file.createReadStream();
 							filereadstream.pipe(res);
+							console.log('bucket', filename);
 							filereadstream.on('error', function (err2) {
 								console.log(err2);
 								createquery(res, projects, query, uid, projectname, filename)
@@ -441,6 +510,7 @@ function createquery(res, ref, query, uid, projectname, filename) {
 function checkglobalfiles(ref, uid, filename) {
 	return nametoref(ref, uid, 'global')
 	.then(function (globalref) {
+		console.log('global', globalref.key, filename);
 		return nametoref(globalref, 'files', filename)
 	})
 	.then(function (fileref) {
