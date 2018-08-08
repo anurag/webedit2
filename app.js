@@ -170,8 +170,23 @@ function download(res, uid, projectid, projectname) {
 					console.log('INCLUDED', included[i].name);
 					archive.append(included[i].contents, {name: '/' + snapshot.val().name + '/' + included[i].name});					
 				};
-				archive.append(JSON.stringify(files), {name: '/' + snapshot.val().name + '/.files.json'});
-				archive.finalize();
+				return findbucketfiles(uid, projectname)
+				.then(function (uploads) {
+					//console.log(uploads);
+					uploads.forEach(function (upload) {
+						if (upload) {
+							if (snapshot.val().contents.includes(upload.name)) {
+								console.log('file', upload.name);
+								archive.append(upload.contents, {name: '/' + snapshot.val().name + '/' + upload.name});							
+								delete upload.contents;
+								//console.log('file', file)
+								files.push(upload);
+							}
+						}
+					});			
+					archive.append(JSON.stringify(files), {name: '/' + snapshot.val().name + '/.files.json'});
+					archive.finalize();
+				});
 			});
 		});
 	} else {
@@ -186,24 +201,38 @@ function download(res, uid, projectid, projectname) {
 				}
 			});
 			let promises = projects.map(function (file) {
-				return searchfordependancies(uid, file.name, file.contents).then(function (included) {
-					let files = [];
-					if (file.contents && file.settings.archived != true) {
-						archive.append('', {name: file.name + '/'})
-						archive.append(file.contents, {name: '/' + file.name + '/' + 'index.html'});
-						for (let key in file.files) {
-							files.push({'name': file.files[key].name, 'lastchange': file.files[key].lastchange, 'archived': file.files[key].archived});
-							//console.log(snap.val().files[file].name);
-							if (!file.files[key].archived) {
-								archive.append(file.files[key].contents, {name: '/' + file.name + '/' + file.files[key].name});	
+				let files = [];
+				return findbucketfiles(uid, file.name)
+				.then(function (uploads) {
+					uploads.forEach(function (upload) {
+						if (upload) {
+							if (file.contents.includes(upload.name)) {
+								console.log('file', upload.name);
+								archive.append(upload.contents, {name: '/' + file.name + '/' + upload.name});							
+								delete upload.contents;
+								//console.log('file', file)
+								files.push(upload);
 							}
 						}
-						if (files.toString()) {
-							//console.log(files);
-							archive.append(JSON.stringify(files), {name: '/' + file.name + '/.files.json'});					
-						}
-					};
-					return [included, file.name];
+					});
+					return searchfordependancies(uid, file.name, file.contents).then(function (included) {
+						if (file.contents && file.settings.archived != true) {
+							archive.append('', {name: file.name + '/'})
+							archive.append(file.contents, {name: '/' + file.name + '/' + 'index.html'});
+							for (let key in file.files) {
+								files.push({'name': file.files[key].name, 'lastchange': file.files[key].lastchange, 'archived': file.files[key].archived});
+								//console.log(snap.val().files[file].name);
+								if (!file.files[key].archived) {
+									archive.append(file.files[key].contents, {name: '/' + file.name + '/' + file.files[key].name});	
+								}
+							}
+							if (files.toString()) {
+								//console.log(files);
+								archive.append(JSON.stringify(files), {name: '/' + file.name + '/.files.json'});					
+							}
+						};
+						return [included, file.name];
+					});
 				});
 			});
 			Promise.all(promises).then(function (included) {
@@ -225,6 +254,48 @@ function download(res, uid, projectid, projectname) {
 			});
 		});
 	}
+}
+
+function findbucketfiles(uid, projectname) {
+	let uploadurls = [];
+	let chunks = {};
+	return bucket.getFiles({prefix: uid + '/' + projectname + '/', delimiter:'/', autoPaginate:false})
+	.then(function (uploads) {
+		//console.log('uploads', uploads[0]);
+		let filereadstream = {};
+		let promises = uploads[0].map(function (upload) {
+			let fileurl = upload.name
+			let filename = upload.name.split('/')[ upload.name.split('/').length - 1]
+			let type = filename.replace(/^.*\.(.*)$/, "$1");
+			let filetypes = ['html', 'css', 'js', 'htm'];
+			if (filetypes.includes(type)) {
+				return new Promise(function(resolve, reject) {
+					//console.log('upload', filename);
+					chunks[fileurl] = [];
+					let file = bucket.file(upload.name);
+					//console.log('file', file);
+					return file.createReadStream()
+					.on('data', function(data) {
+						chunks[fileurl].push(data);
+					})
+					.on('finish', function() {
+						//console.log('upload.name', Buffer.concat(chunks[upload.name]).toString('utf8'))
+						let object = {name: filename, contents: Buffer.concat(chunks[upload.name]).toString('utf8'), uploaded: true}
+						resolve(object);
+						//return chunks[fileurl];
+					})
+					.on('error', function (err2) {
+						//console.log(err2);
+						reject(err2);
+						//return err2;
+					});		
+				});
+			}
+		});
+		return Promise.all(promises).then(function (uploaded) {
+			return uploaded;
+		})
+	});
 }
 
 function searchfilefordependancies(globals, contents) {
@@ -308,18 +379,31 @@ function createfilelist(ref, uid, projectname) {
 			return projectref.child('files').once('value');
 		})
 		.then(function (snapshot) {
-			let files = snapshot.val();
-			let results = [];
-			console.log(files)
-			if (files) {
-				Object.values(files).forEach(function (file) {
-					//console.log(snapshot.val());
-					delete file.contents;
-					//console.log('file', file)
-					results.push(file);							
-				});			
-			}
-			return JSON.stringify(results);
+			return findbucketfiles(uid, projectname)
+			.then(function (uploads) {
+				let files = snapshot.val();
+				let results = [];
+				if (files) {
+					Object.values(files).forEach(function (file) {
+						//console.log(snapshot.val());
+						delete file.contents;
+						//console.log('file', file)
+						results.push(file);							
+					});			
+				}
+				if (uploads) {
+					Object.values(uploads).forEach(function (upload) {
+						if (upload) {
+							//console.log(snapshot.val());
+							delete upload.contents;
+							//console.log('file', file)
+							results.push(upload);			
+						}
+					});			
+				}
+				console.log('results', results);
+				return JSON.stringify(results);
+			});
 		});
 	} else {
 		//console.log('.files');
@@ -377,6 +461,7 @@ function serve(req, res) {
 				//console.log('252', projectname, filename);
 				createfilelist(projects, uid, projectname)
 				.then(function (files) {
+					console.log('files', files);
 					res.send(files);
 				});
 			} else if (!projectname) {
