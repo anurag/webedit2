@@ -412,7 +412,7 @@ function createfilelist(ref, uid, projectname) {
 			let allprojects = [];
 			snapshot.forEach(function (snap) {
 				if (snap.val().name) {
-					allprojects.unshift({'name': snap.val().name, 'lastchange': snap.val().lastchange, 'archived': snap.val().settings.archived});
+					allprojects.unshift({'name': snap.val().settings.name, 'longname': snap.val().settings.longname, 'lastchange': snap.val().lastchange, 'archived': snap.val().settings.archived});
 				}
 			});
 			return JSON.stringify(allprojects);
