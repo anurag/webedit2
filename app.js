@@ -38,12 +38,12 @@ root.child('cookieToUid').on('child_added', updatecookietouid);
 root.child('cookieToUid').on('child_changed', updatecookietouid);
 
 function updatecookietouid(snapshot) {
-	console.log('A', snapshot.key, snapshot.val());
+	//console.log('A', snapshot.key, snapshot.val());
 	g.cookieToUid[snapshot.key] = snapshot.val();	
 }
 
 app.use((req, res, next) => {
-	console.log('vhost', req.get('Host'));
+	//console.log('vhost', req.get('Host'));
 	if (PORT != 8081 && req.get('Host') == 'stage.nerq.com') {
 		console.log('vhosttru', req.get('Host'));
 		res.redirect('//' + req.get('Host') + ':8081');
@@ -401,7 +401,7 @@ function createfilelist(ref, uid, projectname) {
 						}
 					});			
 				}
-				console.log('results', results);
+				//console.log('results', results);
 				return JSON.stringify(results);
 			});
 		});
@@ -421,7 +421,7 @@ function createfilelist(ref, uid, projectname) {
 }
 
 function findadminfile(ref, uid, filename) {
-	console.log('findadminfile', uid, filename);
+	//console.log('findadminfile', uid, filename);
 	return nametoref(ref, uid, 'admin')
 	.then(function (adminref){
 		return nametoref(adminref, 'files', filename)
@@ -461,7 +461,7 @@ function serve(req, res) {
 				//console.log('252', projectname, filename);
 				createfilelist(projects, uid, projectname)
 				.then(function (files) {
-					console.log('files', files);
+					//console.log('files', files);
 					res.send(files);
 				});
 			} else if (!projectname) {
@@ -487,24 +487,23 @@ function serve(req, res) {
 			} else if (query.run == 'edit' || query.run == 'editor') {
 				findadminfile(projects, '0GZ6h7paIPSfwN6kvMqxv85p9XX2', 'editor.html')
 				.then(function (file) {					
-					console.log(file)
+					console.log('edit');
 					nametoref(projects, uid, projectname)
 					.then(function(projectref) {
 						let timecode = Date.now();
-						console.log(timecode);
-						console.log('filename', filename);
+						//console.log(timecode);
+						//console.log('filename', filename);
 						if (!filename) filename = '_html';
-						console.log('filename2', filename);
+						//console.log('filename2', filename);
 						projectref.child('activetab').update({name: filename, instance: timecode});							
 						res.cookie('instance', timecode);
 						//res.sendFile('editor.html', { root: __dirname + '/html'});
-						res.set('content-type', 'text/html');
+						//res.set('content-type', 'text/html');
 						res.send(file.contents);					
 					});
 				});
 			} else if (!filename) {
-				//console.log('RUN');
-				//?run=
+				console.log('run', filename);
 				nametoref(projects, uid, projectname)
 				.then(projectref => projectref.once('value'))
 				.then(function (snapshot) {
@@ -513,44 +512,51 @@ function serve(req, res) {
 					}
 				});
 			} else if (filename) {
-				console.log('DEPENDANCY');
-				let ref;
-				nametoref(projects, uid, projectname)
-				.then(function (projectref) {
-					ref = projectref;
-					nametoref(projectref, 'files', filename)
-					.then(function (fileref) {
-						fileref.once('value', function (snapshot) {
-							if (snapshot.val().archived) {								
-								checkglobalfiles(projects, uid, filename)
-								.then(function (file) {
-									sendwithtype(res, projects, uid, projectname, file.name, file.contents);							
-								})
-							} else {
-								if (filename.charAt(0) != '.') {
-									sendwithtype(res, projects, uid, projectname, snapshot.val().name, snapshot.val().contents);															
-								} else res.send(snapshot.val().contents);
-							}
-							//console.log('found')
-						});
-					})
-					.catch(function (err) {
-						checkglobalfiles(projects, uid, filename)
-						.then(function(file) {
-							sendwithtype(res, projects, uid, projectname, file.name, file.contents);							
+				//console.log('DEPENDANCY');
+				if (query.create) {
+					createquery(res, projects, query, uid, projectname, filename)
+				} else {
+					let ref;
+					nametoref(projects, uid, projectname)
+					.then(function (projectref) {
+						ref = projectref;
+						nametoref(projectref, 'files', filename)
+						.then(function (fileref) {
+							fileref.once('value', function (snapshot) {
+								if (snapshot.val().archived) {								
+									checkglobalfiles(projects, uid, filename)
+									.then(function (file) {
+										console.log('global', file.name);
+										sendwithtype(res, projects, uid, projectname, file.name, file.contents);							
+									})
+								} else {
+									if (filename.charAt(0) != '.') {
+										console.log('local', uid, projectname, snapshot.val().name);
+										sendwithtype(res, projects, uid, projectname, snapshot.val().name, snapshot.val().contents);															
+									} else res.send(snapshot.val().contents);
+								}
+							});
 						})
-						.catch(function(error) {
-							let file = bucket.file('/' + uid + '/' + projectname + '/' + filename);
-							let filereadstream = file.createReadStream();
-							filereadstream.pipe(res);
-							console.log('bucket', filename);
-							filereadstream.on('error', function (err2) {
-								console.log(err2);
-								createquery(res, projects, query, uid, projectname, filename)
+						.catch(function (err) {
+							checkglobalfiles(projects, uid, filename)
+							.then(function(file) {
+								console.log('global', file.name);
+								//sendwithtype(res, projects, uid, projectname, file.name, file.contents);	
+								res.send(file.contents)
+							})
+							.catch(function(error) {
+								let file = bucket.file('/' + uid + '/' + projectname + '/' + filename);
+								let filereadstream = file.createReadStream();
+								filereadstream.pipe(res);
+								console.log('bucket', filename);
+								filereadstream.on('error', function (err2) {
+									console.log(err2);
+									console.log('buckert', uid, projectname, filename);
+								});
 							});
 						});
 					});
-				});
+				}
 			} else {
 				res.status(404)
 				res.send('Not found')			
@@ -588,6 +594,7 @@ function createquery(res, ref, query, uid, projectname, filename) {
 		});
 	} else {
 		res.status(404)
+		console.log(uid, projectname);
 		res.send('Not found')											
 	}
 }
@@ -595,7 +602,6 @@ function createquery(res, ref, query, uid, projectname, filename) {
 function checkglobalfiles(ref, uid, filename) {
 	return nametoref(ref, uid, 'global')
 	.then(function (globalref) {
-		console.log('global', globalref.key, filename);
 		return nametoref(globalref, 'files', filename)
 	})
 	.then(function (fileref) {
@@ -611,7 +617,7 @@ function checkglobalfiles(ref, uid, filename) {
 
 function sendwithtype(res, ref, uid, projectname, name, contents) {
 	let type = name.replace(/^.*\.(.*)$/, "$1");
-	console.log('type', type, uid, name);
+	//console.log('type', type, uid, name);
 	if (type == 'js') {type = 'javascript'};
 	if (type == 'htm') {type = 'html'};
 	if (type == 'html') {
