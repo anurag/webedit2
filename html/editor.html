@@ -19,31 +19,33 @@
 				</button>
 				<ul id="useroptions" class="dropdown-menu dropdown-menu-right">
 					<li><a name='settings' href="javascript:;">Settings</a></li>
-					<li><a name='zip' href="javascript:;">Download Project</a></li>
-					<li><a style="color:lightgrey" name='about' href="javascript:;">About</a></li>
+					<li><a name='zip' href="javascript:;">Download All</a></li>
+					<li><a name='about' href="javascript:;">About</a></li>
 					<li><a name='logout' href="javascript:;">Logout</a></li>
 				</ul>
 			</div>
 			<div title='List Project Options' id="projectdrop" class="dropdown">
 				<button id="projectbutton" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">
-					<span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
+					<span id='folder' class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
 				</button>
 				<ul id="projectoptions" class="dropdown-menu">
-					<li><a name='new' href="javascript:;">New Project +</a></li>
-					<li><a name='open' href="javascript:;">Open Project ></a></li>
+					<li><a name='new' href="javascript:;">New Project ...</a></li>
+					<li><a name='open' href="javascript:;">Open Project <span class='glyphicon glyphicon-triangle-right'></span></a></li>
 					<li><a name='share' href="javascript:;">Share Project</a></li>
 					<li><a name='rename' href="javascript:;">Rename Project</a></li>
-					<li><a style="color:lightgrey" name='clone' href="javascript:;">Clone Project</a></li>
-					<li><a name='zip' href="javascript:;">Download All</a></li>
+					<li><a name='clone' href="javascript:;">Clone Project</a></li>
+					<li><a name='zip' href="javascript:;">Download Project</a></li>
 					<li><a style="color:red" name='archive' href="javascript:;">Delete Project</a></li>
 				</ul>
 			</div>
 			<div class="onoff">
-				<span title='Make Project Public' id='ispublic' class="glyphicon glyphicon-globe"></span>
 				<span title='Make Project Read Only' id='readonly' class="glyphicon glyphicon-pencil"></span>
+				<span title='Make Project Public' id='ispublic' class="glyphicon glyphicon-globe"></span>
 			</div>
 		</div>
 		<ul id="projectlist" class="dropdown-menu"></ul>
+		<ul id="uploadlist" class="dropdown-menu"></ul>
+		<ul id="globalfilelist" class="dropdown-menu"></ul>
 		<ul id="filelist" class="dropdown-menu"></ul>
 		<ul id="taboptions" class="dropdown-menu">
 			<li><a name='viewtab' href="javascript:;">View Tab</a></li>	
@@ -53,10 +55,10 @@
 		</ul>
 		<ul id="adminlist" class="dropdown-menu dropdown-menu-right"></ul>
 		<div class='viewchange' id='open'>
-			<a title='Open Project In Viewer' id='openlink' target="_blank" href=''>&#11008 </a>
+			<a title='Open Project In Viewer' id='openlink' target="_blank" href=''><span class="glyphicon glyphicon-new-window" aria-hidden="true"></span> </a>
 		</div>
-		<div title='Close View Window' class='viewchange' id='close'>x</div>
-		<div title='Open View Window' class='viewchange' id='openview'>&#9998;</div>
+		<div title='Close View Window' class='viewchange' id='close'><span class="glyphicon glyphicon glyphicon-remove" aria-hidden="true"></span></div>
+		<div title='Open View Window' class='viewchange' id='openview'><span class="glyphicon glyphicon-eye-open" aria-hidden="true"></span></div>
 		<div class='row'>	
 			<div class='column'>
 				<div class='tabs'>
@@ -66,17 +68,35 @@
 				<div id="editor"></div>
 				<div id="inlineeditor"></div>
 			</div>
-			<div class='column'>
+ 			<div class='column'>
 				<iframe id='viewframe' src=''></iframe>
 			</div>
 		</div>
-		<form id="fileform">
+        <form id="fileform">
 			<input id="fileupload" type="file" name="file" data-url="/upload">
 		</form>
 	</body>
 	<style>
+        .verticalLine {
+            z-index: 10;
+            border-left: 5px solid #2f2f2fd6;
+            opacity: 0;
+        }
+        .verticalLine:hover {
+            opacity: .2;
+            cursor: pointer;
+        }
+        #viewframe {
+	        z-index: 5;
+	    }
+	    .ace_scrollbar {
+	        opacity: .3;
+	    }
+	    body {
+	        background-color: #f7f7f7;
+	    }
 		#openeditlink {
-			font-size: 17px;
+			font-size: 14px;
 			float: right;
 			margin-right: 3px;
 		}
@@ -84,6 +104,7 @@
 			position: absolute;
 		}
 		.topbar {
+		    margin-top: 1px;
 			display: inline-block;
 			width: 100%;
 		}
@@ -91,18 +112,20 @@
 			.top: 0;
 		}
 		#projectbutton {
+		    border-radius: 10%;
 			vertical-align: baseline;
 			color: rgb(51, 122, 183);
-			background-color: white;
+	        background-color: #efefef36;
 			font-size: 22;
 			border: none;
+			margin-left: 3px;
+            text-shadow', '-2px 0 white, 0 1px white, 2px 0 white, 0 -1px white;
 		}
 		#projectbutton:hover {
-			color: white;
-			background-color: #337ab7;
+			background-color: #e6e6e6d6;
 		}
 		.viewchange {
-			font-size: 17px;
+			font-size: 14px;
 		}
 		#editor {
 			z-index: 6;
@@ -116,17 +139,21 @@
 			display: none;
 		}
 		#readonly {
+		    border-radius: 10%;
 			line-height: 40px;
 			font-size: 22;
 			color: #a5a5a5;
 			height: 40;
 			width: 40;
+            text-shadow', '-2px 0 white, 0 1px white, 2px 0 white, 0 -1px white;
 		}
 		#readonly:hover {
-			//background-color: #337ab7;
+			background-color: #e6e6e6d6;
 			cursor: pointer;
 		}
 		#ispublic {
+            text-shadow', '-2px 0 white, 0 1px white, 2px 0 white, 0 -1px white;
+		    border-radius: 10%;
 			line-height: 40px;
 			font-size: 22;
 			color: #a5a5a5;
@@ -134,24 +161,31 @@
 			width: 40;
 		}
 		#ispublic:hover {
-			//background-color: #337ab7;
+            background-color: #e6e6e6d6;
 			cursor: pointer;
 		}
 		.toggle.btn {
 			height: 20px;
 		}
+		#openlink {
+			font-size: 12px;
+		}
 		#open {
-			margin-top: 11px;
+			margin-top: 5px;
 			position: absolute;
-			right: 14px;
+			right: 20px;
+			font-size: 14px;
 			z-index: 10;
 		}
 		#close {
-			color: red;
-			margin-top: 10px;
+		    border-radius: 10%;
+			color: #ff000080;
+			margin-top: 5px;
+			font-weight: 400px;
 			position: absolute;
 			z-index: 10;
-			right: 4px;
+			font-size: 13px;
+			right: 3px;
 		}
 		#openview {
 			display: none;
@@ -164,55 +198,65 @@
 			cursor: pointer;
 		}
 		#close:hover {
+			background-color: #e6e6e6d6;
 			cursor: pointer;
+			color: red;
 		}
 		#userbutton {
+        	margin-right: 3px;
+		    border-radius: 10%;
+	        background-color: #efefef36;
 			//color: black;
 			//background-color: white;
+			margin-top: 1px;
 			float: right;
 			padding: 0;
 			//border: none;
 		}
 		#userbutton:hover {
-			background-color: #f5f5f5;
+			background-color: #e6e6e6d6;
 		}
 		.tabx {
 			z-index: 50;
 			background-color: #ff6d6d;
 			width: 10px;
-			height: 14px;
 			position: absolute;
 			color: white;
-			font-size: 12;
+			font-size: 10;
 			margin: auto;
-			top: -1;
-			right: -1;
+			top: 0;
+			right: 0;
 			opacity: .7;
+		}
+		#cloud {
+		    position: absolute;
+		    left: 1;
+		    top: 0;
+		    opacity: .3;
 		}
 		.tabx:hover {
 			opacity: .9;			
 			background-color: #fd2b2b;
 		}
 		.tab {
-			outline:none;
-			vertical-align: middle;
+		    font-family: "Trebuchet MS", Helvetica, sans-serif;
+		    border-top-right-radius: 1px;
+		    //border-top-left-radius: 2px;
 			position:relative;
-			white-space: normal;
 			border-color: #0000002e;
 			border-width: 1px;
 			border-style: solid;
-			font-weight: 550;
 			font-size: 14;
-			padding: 12px;
-			padding-bottom: 30px;
+			padding-top: 10px;
+			padding-bottom: 25px;
 			background-color: rgb(249, 249, 249);
-			height: 30px;
+			height: 20px;
 			min-width: 45px;
 		}
 		.tab:hover {
 			background-color: rgb(216, 216, 216);
 		}
-		.tabs {		
+		.tabs {
 			background: #eee;
 			border-radius: 0 3px 0 0;
 		}
@@ -224,17 +268,23 @@
 		#projectdrop {
 			display: inline-block;
 		}
-		#projectlist, #filelist {
+		#projectlist, #filelist, #globalfilelist, #uploadlist {
 			top: 0;
-			max-height: 195px;
 			position: absolute;
 			overflow: auto;
+		    max-height: 350px;
 		}
 		#projectlist {
-			margin-top: 40px;		
+			margin-top: 75px;		
 		}
 		#filelist {
-			margin-top: 52px;
+			margin-top: 43px;
+		}
+		#globalfilelist {
+			margin-top: 100px;
+		}
+		#uploadlist {
+			margin-top: 100px;
 		}
 		#userdrop {
 			float: right;
@@ -244,7 +294,8 @@
 		}
 		#logo {
 			vertical-align: middle;
-			margin-left: 5px;
+			margin-left: 7px;
+			margin-top: -8px;
 			height: 30px;
 		}
 		#editor {
@@ -258,16 +309,17 @@
 		#viewframe {
 			position: absolute;
 			border-top: none;
-			border-bottom: 1px solid #F9F9F9;
-			border-right: 1px solid #F9F9F9;
-			border-left: 1px solid #F9F9F9;
+			border-bottom: none;
+			border-right: 1px solid #b5b5b5;
+			border-left: 1px solid #b5b5b5;
+			background-color: white;
 		}
 		.row {
 			display: flex;
-			margin-top: 10px;
-			border-top:1pt solid #F9F9F9;
+			border-top: 1px solid #b5b5b5;
 			margin-right: 0;
 			margin-left: 0;
+			margin-top: 1;
 		}
 		.btn {
 			border-radius: 0px;
@@ -286,12 +338,18 @@
 		
 		window.onclick = function(event) {
 			//console.log(event)
-			//console.log($('#filelist').css("display"))
+			//console.log($('#uploadlist').css("display"))
 			if (event.target.name != "open" && $('#projectlist').css("display") != 'none') {
 				$('#projectlist').hide();
 			}
+			if (event.target.id != "_globalfile" && $('#globalfilelist').css("display") != 'none') {
+				$('#globalfilelist').hide();
+			}
 			if (event.target.id != "_addtab" && $('#filelist').css("display") != 'none') {
 				$('#filelist').hide();
+			}
+			if (event.target.id != "_listuploads" && $('#uploadlist').css("display") != 'none') {
+				$('#uploadlist').hide();
 			}
 			if (event.target.name != "makeme" && $('#adminlist').css("display") != 'none') {
 				$('#adminlist').hide();
@@ -310,20 +368,32 @@
 			}
 			//console.log(change);
 			$('#filelist').css({'left': change});
+			$('#globalfilelist').css({'left': change + $('#filelist').width()});
+			$('#uploadlist').css({'left': change + $('#filelist').width()});
 		}
 		
 		function resizeframes(query) {
 			//console.log(query)
-			let change = ($('#userbutton').height() + $('.tabs').height() + 40)
+			let change = ($('#userbutton').height() + $('.tabs').height() + 10)
+			$('.verticalLine').css({'height': window.innerHeight - change + $('.tabs').height()});
 			if (query == '?run=edit') {
-				$('.row').css('border-top', '1pt solid #F9F9F9');
-				$('#viewframe').css({'border-left': '1px solid #F9F9F9', 'height': (window.innerHeight - change + $('.tabs').height()), 'width': window.innerWidth/2, 'left': window.innerWidth/2});
-				$('#editor').css({'height': (window.innerHeight - change), 'width': window.innerWidth/2});			
+				$('#viewframe').css({'height': (window.innerHeight - change + $('.tabs').height()), 'width': window.innerWidth/2, 'left': window.innerWidth/2});
+				$('#editor').parent().css({'height': (window.innerHeight - change), 'width': window.innerWidth/2});			
+				$('.tabs').css({'width': window.innerWidth/2});
+				$('#viewframe').show();
+				$('#viewframe').parent().show();
 			}
 			if (query == '?run=editor') {
-				$('.row').css('border-top', 'none');
 				$('#viewframe').css({'height': (window.innerHeight - change + $('.tabs').height()), 'width': 0, 'left': window.innerWidth});
-				$('#editor').css({'height': (window.innerHeight - change), 'width': window.innerWidth});			
+				$('#editor').parent().css({'height': (window.innerHeight - change), 'width': window.innerWidth - 2});
+				$('.tabs').css({'width': window.innerWidth - 2});
+				$('#viewframe').parent().hide();
+				$('#viewframe').hide();
+			}
+			if (!g.activeeditor) {
+                swapeditors(false)
+			} else {
+                swapeditors(g.activeeditor)
 			}
 		}
 
@@ -367,13 +437,15 @@
 			return values;
 		}
 		
-		g.inlineeditor = ace.edit('inlineeditor');-
+		g.inlineeditor = ace.edit('inlineeditor');
 		g.inlineeditor.setTheme("ace/theme/dawn");
-		g.inlineeditor.getSession().setOption("ace/mode/javascript");
+		g.inlineeditor.session.setMode("ace/mode/html");
 		let editor = ace.edit('editor');
 		editor.setTheme("ace/theme/dawn");
-		editor.getSession().setOption("ace/mode/javascript");
+		editor.session.setMode("ace/mode/html");
 		stateObj = {foo: 'projs'};
+		g.editor = {};
+		//console.log(editor.commands)
 		
 		function getCook(cookiename) {
 			var cookiestring = RegExp(""+cookiename+"[^;]+").exec(document.cookie);
@@ -468,17 +540,15 @@
 				//console.log(g.settings)
 				if (g.settings.ispublic) {
 					$('#ispublic').css('color', '#337ab7');
-					$('#ispublic').css('text-shadow', '-2px 0 white, 0 1px white, 2px 0 white, 0 -1px white');
 					$('#ispublic').attr('title', 'Make Project Private');
 				} else {
 					$('#ispublic').css('color', '#a5a5a5');
 					$('#ispublic').css('text-shadow', 'none');
 					$('#ispublic').attr('title', 'Make Project Public');
 				}
-				console.log(g.admins)
+				//console.log(g.admins)
 				if (g.settings.readonly || (!g.admins[g.uid] && (g.shared && !g.shared.includes(g.authemail)) && g.uid != g.authuid)) {
 					$('#readonly').css('color', '#a5a5a5');				
-					$('#readonly').css('text-shadow', 'none');
 					$('#readonly').attr('title', 'Make Project Readable');
 					editor.renderer.$cursorLayer.element.style.display = "none";
 					editor.setOptions({
@@ -488,7 +558,6 @@
 					});
 				} else {
 					$('#readonly').css('color', '#337ab7');
-					$('#readonly').css('text-shadow', '-2px 0 white, 0 1px white, 2px 0 white, 0 -1px white');
 					$('#readonly').attr('title', 'Make Project Read Only');
 					editor.renderer.$cursorLayer.element.style.display = "";
 					editor.setOptions({
@@ -501,8 +570,9 @@
 			});
 		}
 		
+
 		$('.onoff').on('click', 'span', function(event) {
-			//console.log(event.target.id);
+			//console.log(g.uid, g.authuid);
 			if (event.target.id != '' && g.uid == g.authuid)
 				if (g.settings[event.target.id]) {
 					g.currentprojectref.child('settings').child(event.target.id).set(false);
@@ -515,8 +585,7 @@
 		$(function () {
 			//console.log(window.location);
 			[g.host, g.uid, g.projectname, g.filename] = window.location.pathname.split('/');
-			$('#openlink').attr("href", window.location.origin + '/' + g.uid + '/' + g.projectname + '/');
-			$('#openeditlink').attr("href", window.location.origin + '/' + g.uid + '/' + g.projectname + '/?run=editor');
+			$('#openlink').attr("href", window.location.origin + '/' + g.uid + '/' + g.projectname + '/?run=viewer');
 			$('#logolink').attr("href", '/' + g.uid + '/');
 			g.query = window.location.search;
 			listentosettings(projects, 'global', 'global', 'global')
@@ -528,65 +597,70 @@
 				$('#open').hide();
 				$('#openview').show();
 			}
-			$('#_html').html(g.projectname);
 			resizeframes(g.query);
 			alignlists();
 			loadfromfirebase(g.uid, $('#projectlist'));
+			loadfromfirebase('files', $('#uploadlist'));
+			runproject(g.uid, g.projectname);
+			listfiles('files', $('#filelist'));
+			if (g.projectname != 'global') {
+    			loadfromfirebase('globalfiles', $('#globalfilelist'));
+			} else {
+			    $('#globalfilelist').remove();
+			    $('#_globalfile').remove();
+			    $('#_uploadfile').css('border-bottom', "1px solid #d8d8d8");
+			}
 			nametoref(projects, g.uid, g.projectname)
 			.then(function(projectref) {
 				g.currentprojectref = projectref;
-				listfiles('files', $('#filelist'));
+				findprojectbooleans(g.currentprojectref);
+				g.currentprojectref.child('settings').child('longname').set(g.projectname.replace(/_/g," "));
 				g.currentprojectref.once('value')
 				.then(function (snapshot) {
+			        $('#_html').html(snapshot.val().settings.longname);
 					g.shared = snapshot.val().shared;
-					findprojectbooleans(g.currentprojectref);
-					runproject(g.uid, g.projectname);
 					g.contents = snapshot.val().contents;
-					if (snapshot.val().activetab) {
-						g.activetab = snapshot.val().activetab;
-					} else g.activetab = '_html';
 					setEditor(g.contents);
 					slice();
-					g.currentprojectref.child('contents').on('value', function(contentsnap) {
-						if (contentsnap.val() != g.contents) {
-							if (g.activetab == '_html' && editor.getValue() != contentsnap.val()) {
-								g.contents = contentsnap.val();
-								setEditor(contentsnap.val());
-							} else if (g.activetab == '_inlinetab') {
-								g.contents = contentsnap.val();
-								editor.setValue(g.contents);
-							}
-							runproject(g.uid, g.projectname);
-						}						
+					console.log('activetab', snapshot.val().activetab.name)
+					if (snapshot.val().activetab.name) {
+						g.activetab = snapshot.val().activetab.name;
+					}
+					g.currentprojectref.on('value', function(instancesnap) {
+					   console.log(instancesnap.val().instance);
+						if (instancesnap.val().contents != g.contents) {
+                            g.contents = instancesnap.val().contents;
+                            runproject(g.uid, g.projectname);
+                            if (g.instance != instancesnap.val().instance.time) {
+                                setEditor(g.contents);
+                            }
+						}
 					});
 					g.currentprojectref.child('activetab').on('value', function(activetabsnap) {
-						console.log(activetabsnap.val())
-						if (activetabsnap.val() && activetabsnap.val() != '_html') {
-							let filename = activetabsnap.val().replace('.', '-');
-							if (!$('#' + filename)[0]) {
-								console.log(filename);
-								loadtab(filename)
-								addtab(filename);							
+						console.log(g.activetab, activetabsnap.val(), getCook('instance'), activetabsnap.val().instance == getCook('instance'))
+						if (activetabsnap.val().name && (activetabsnap.val().instance == getCook('instance') || g.openready) && activetabsnap.val() != '_html') {
+							delete g.openready
+							//console.log('firebasefile');
+							let filename = activetabsnap.val().name.replace('.', '-');
+							if (!$('#' + filename)[0] && (!g.lastchange || g.editor[activetabsnap.val().name])) {
+								//console.log(activetab);
+								addtab(filename.replace('-', '.'));			
 							}
 						}
 					});
 					g.currentprojectref.child('files').on('child_changed', function(filechange) {
 						//console.log('filechange', g[filechange.val().name]);
-						if (g[filechange.val().name] != filechange.val().contents) {
-							runproject(g.uid, g.projects);
-						}
+						//if (g[filechange.val().name] != filechange.val().contents) {
+						//	runproject(g.uid, g.projects);
+						//}
 					});
 					g.currentprojectref.child('shared').on('value', function(shared) {
-						console.log(g.shared);
+						//console.log(g.shared);
 					});
 				});
 			});
 		});		
-		
-		function loadtab(tabname) {
-			g.currentprojectref.child('activetab').set(tabname);
-		}
-		
+
 		function loadadmins(uid) {
 			root.child('admin').child('admins').once('value', function (snapshot) {
 				g.admins = snapshot.val();
@@ -604,7 +678,7 @@
 		function listadmins(ref) {
 			ref.on('child_added', function(snapshot) {
 				//console.log(snapshot.val().email, snapshot.key);
-				let html = ('<li><a id="' + snapshot.key + '" href="javascript:;">' + snapshot.val().email + '</a></li>');
+				let html = ('<li><a id="' + snapshot.key + '" href="/' + snapshot.key + '/">' + snapshot.val().email + '</a></li>');
 				$('#adminlist').append(html);
 			});
 		}
@@ -613,40 +687,105 @@
 			loadfromfirebase(projects, g.uid, $('#projectlist'));
 		}
 		
-		function listfiles(uid, list) {
+		function listfiles(uid, list, addons) {
+		    list.html("");
 			loadfromfirebase('files', $('#filelist'));
-			let html = '<li><a style="border-bottom: 1px solid #d8d8d8;" id="_uploadfile" href="javascript:;">Upload File</a></li>'
-			list.prepend(html);
-			html = '<li><a id="_addfile" href="javascript:;">New File +</a></li>'
-			list.prepend(html);
+			//if (!addons) {
+    			let html = '<li><a style="border-bottom: 1px solid #d8d8d8;" id="_globalfile" href="javascript:;">Global Files<span class="glyphicon glyphicon-triangle-right"></span></a></li>'
+    			list.prepend(html);
+				//	<li><a name='uploads' href="javascript:;">View Uploads <span class='glyphicon glyphicon-triangle-right'></span></a></li>
+    		    html = '<li><a id="_listuploads" href="javascript:;">View Uploads<span class="glyphicon glyphicon-triangle-right"></span></a></li>'
+    			list.prepend(html);
+    		    html = '<li><a id="_uploadfile" href="javascript:;">Upload File ...</a></li>'
+    			list.prepend(html);
+    			html = '<li><a id="_addfile" href="javascript:;">New File ...</a></li>'
+    			list.prepend(html);
+			//}
 		}
 		
 		//<li><a name='new' href="javascript:;">New Project +</a></li>New Project +</a></li>
 		function loadfromfirebase(uid, list) {
-			list.html("");
+		    console.log(list[0].id)
+			//list.html("");
 			let url = '.files.json'
-			if (uid != 'files') {
+	    	if (uid == 'globalfiles') {
+			    url = '../global/.files.json';
+			}
+			if (uid != 'files' && uid != 'globalfiles') {
 				url = '/' + uid + '/' + url;
 			}
 			$.getJSON(url)
 			.then(data => {
 				data.forEach(function (node) {
-					if (node.name && !node.archived) {
-						console.log(node);	
-						let html = ('<li><a id="' + node.name + '" href="javascript:;">' + node.name + '</a></li>');
-						list.append(html);
-					}			
+				    //console.log(node, list)
+				    let name = node.name;
+				    let longname = name;
+				    let href = 'javascript:;';
+				    let html;
+					if (node.longname) longname = node.longname;
+					if (list[0].id == "uploadlist") {
+					    if (node.uploaded) {
+						    href = node.name;
+					        //console.log('uploaded', node)
+						    html = ('<li><a target="_blank" id="' + name + '" href="' + href + '">' + longname + '</a></li>');
+					    }
+					} else if (list[0].id == "projectlist" && !node.archived) {
+					    href = '../' + node.name + '/?run=edit';
+				        //console.log('uploaded', node)
+					    html = ('<li><a id="' + name + '" href="' + href + '">' + longname + '</a></li>');
+				    } else if (!node.archived && !node.uploaded) {
+						//console.log('local', node);
+						html = ('<li><a id="' + name + '" href="' + href + '">' + longname + '</a></li>');
+					}
+					list.append(html);
 				});
+				if (!list[0].innerHTML || g.nofiles) {
+					list.append('<li><a href="javascript:;">No Files</a></li>');
+				}
 			});
 		}
+		
+        document.onpaste = function(e) {
+           if (e.clipboardData) {
+              let items = (e.clipboardData || e.originalEvent.clipboardData).items;
+              for (var i = 0; i < items.length; i++) {
+                  let item = items[i];
+                  if (item.kind == 'file') {
+                     console.log(item);
+                     let blob = item.getAsFile();
+                     let reader = new FileReader();
+                     reader.onload = function(event) {
+                         console.log(event.target.results);
+                     }
+                     reader.readAsDataURL(blob);
+                  }
+              }
+           }
+        }
+         
+
+		$('#viewframe').on('load', function() {
+            let furl = {};
+            [furl.host, furl.uid, furl.projectname, furl.filename] = document.getElementById('viewframe').contentWindow.location.pathname.split('/');
+            //console.log(furl, furl.filename);
+            if (furl.filename) {
+                //console.log('openready');
+                g.openready = true;
+            }
+		});
 		
 		$('#openview').on('click', function () {
 			top.window.history.replaceState(stateObj, name, '../' + g.projectname + '/?run=edit');
 			$('#close').show();
 			$('#open').show();
 			$('#openview').hide();
+			g.query = "?run=edit";
+			resizeframes(g.query);
 			runproject(g.uid, g.projectname)
-			resizeframes('?run=edit');
+		});
+		
+		$('#openlink').on('click', function () {
+		    $('#close').click();
 		});
 		
 		$('#close').on('click', function () {
@@ -654,13 +793,14 @@
 			$('#close').hide();
 			$('#open').hide();
 			$('#openview').show();
-			resizeframes('?run=editor');
+			g.query = '?run=editor';
+			resizeframes(g.query);
 		});
 		
 		$('#useroptions').on('click', 'a', function (event) {
 			let option = event.target.name;
 			if (option == 'settings') {
-				top.window.history.pushState(stateObj, name, '../' + '.settings' + '/?run=edit');
+				top.window.history.pushState(stateObj, name, '../' + '.settings' + '/' + g.query);
 				top.window.location.reload();
 			}
 			if (option == 'makeme') {
@@ -669,8 +809,13 @@
 			}
 			if (option == 'logout') {
 				logout();
-				$('#logo').click();
 			}
+			if (option == 'about') {
+			    // + $(location).attr("pathname") + '?run=about'
+			    console.log($(location).attr("pathname") + '?run=about')
+    			top.window.location.href = ('/0GZ6h7paIPSfwN6kvMqxv85p9XX2/admin/about.html');
+				//$('#viewframe')[0].contentWindow.location = $(location).attr("origin") + '/0GZ6h7paIPSfwN6kvMqxv85p9XX2/admin/about.html';	
+ 			}
 			if (option == 'zip') {
 				window.open($(location).attr("origin") + '/' + g.uid + '/' + "?run=download");
 				window.close();
@@ -681,7 +826,7 @@
 			let email = prompt("Email of user");
 			let emaillist = [];
 			$('#adminlist a').each((i, el) => emaillist.push($(el).text()))
-			console.log(emaillist);
+			//console.log(emaillist);
 			while (email && !emaillist.includes(email)) {
 				email = prompt("That user does not exist please");
 			}
@@ -712,6 +857,9 @@
 				renameproject();
 				loadfromfirebase(g.uid, $('#projectlist'));
 			}
+			if (option == 'clone') {
+                create(projects, g.uid, g.contents, '.clone');
+			}
 			if (option == 'archive') {
 				if (confirm('Do you want to archive project ' + g.projectname + '?')) {
 					g.currentprojectref.child('settings').update({
@@ -726,6 +874,41 @@
 				window.close();
 			}
 		});
+		
+		function create(ref, uid, newcontents, name) {
+		    let clone;
+		    let files = '';
+		    if (name = '.clone') {
+		        clone = true;
+		    }
+			if (!name || name == '.clone') {
+				name = prompt("New project name?");	
+			}
+            g.currentprojectref.child('files').once('value')
+            .then(function (snapshot) {
+                if (clone) {
+                   files = snapshot.val(); 
+                   //console.log('files',  files);
+                }
+                longname = name;
+    			name = checkname(name)
+    			ref = ref.child(uid);
+    			//console.log(name)
+    			let created = ref.push({
+    				contents: newcontents,
+    				name: name,
+    				longname: longname,
+    				lastchange: firebase.database.ServerValue.TIMESTAMP,
+    				files: files,
+    				settings: {name: name,
+    				ispublic: false,
+    				archived: false,
+    				readonly: false,}
+    			})
+    			top.window.history.pushState(stateObj, name, '../' + name + '/?run=edit');
+    			top.window.location.reload();
+            });
+		}
 		
 		$('#fileupload').change(function (event) {
 			event.stopPropagation();
@@ -742,42 +925,42 @@
 				data: fd
 			});
 		});
+
+		function editglobalfile(ref, uid, projectname, filename) {
+		    nametoref(ref, uid, "global")
+		    .then(function (globalref){
+		        editfile(globalref, 'files', filename, true)
+		    })
+		}
 		
-		$('#projectlist').on('click', 'a', function (event) {
+		$('#globalfilelist').on('click', 'a', function (event) {
 			let name = event.target.id;
-			//console.log(window.location.href.split('/'))
-			if (top.window.location.href.split('/')[3] != g.uid) {
-				//console.log('test');
-				top.window.history.pushState(stateObj, name, "/" + g.uid + '/')
-			}
-			top.window.history.pushState(stateObj, name, '../' + name + '/?run=edit');
-			top.window.location.reload();
+			//console.log(name)
+			addtab('global_' + name, true);
 		});
 		
 		$('#filelist').on('click', 'a', function (event) {
-			let name = event.target.id;	
+		    let name = event.target.id;	
 			//console.log(name);
 			if (name == "_addfile") {
 				addfile(g.currentprojectref, 'files', "");
-				listfiles('files', $('#filelist'));
+				listfiles('files', $('#filelist'), true);
+			} else if (name == "_globalfile") {
+			    event.stopPropagation();
+			    $('#globalfilelist').show();
 			} else if (name == "_uploadfile") {
 				$('#fileupload').click();
+			} else if (name == "_listuploads") {
+			    event.stopPropagation();
+				$('#uploadlist').show();
 			} else {
 				addtab(name);
 			}
 		});
 		
-		$('#adminlist').on('click', 'a', function (event) {
-			let uid = event.target.id;
-			if (uid != g.uid) {
-				top.window.history.pushState(stateObj, name, '/' + uid + '/');
-				top.window.location.reload();				
-			}
-		});
-		
 		function tabstyle(tab) {
 			$('.tab').css({'box-shadow':'', 'border-bottom':'', 'z-index': 0});
-			tab.css({'box-shadow':'black 0px -1px 2px 0px', 'border-bottom':'none', 'z-index': 5});		
+			tab.css({'box-shadow':'black 0px -1px 1px 0px', 'border-bottom':'none', 'z-index': 5});		
 		}
 		
 		function parsehtml(contents) {
@@ -796,51 +979,81 @@
 		
 		
 		$('.tabs').on('click', 'span', function (event) {
-			event.target.parentNode.remove();
-			console.log(event.target.parentNode.id);
-			let refname = event.target.parentNode.id.replace('-', '.');
-			let ref = g.fileref[refname];
-			ref.off();
-			alignlists();
-			$('#_html').click();
+		    if (event.target.className == 'tabx') {
+    			event.target.parentNode.remove();
+    			//console.log(event.target.parentNode.id);
+    			$('#' + event.target.parentNode.id).remove();
+    			let refname = event.target.parentNode.id.replace('-', '.');
+    			delete g.editor[refname];
+    			let ref = g.fileref[refname];
+    			ref.off();
+    			alignlists();
+    			listfiles('files', $('#filelist'), true);
+    			loadfromfirebase('globalfiles', $('#globalfilelist'));
+    			$('#_html').click();
+		    }
 		});
 		
+		//tlasdoalsdhtneosdyjtonoasnth adfasdntyythiesasdf
 		$('.tabs').on('click', 'button', function(event) {
 			if (event.target.id) {
-				tabstyle($(this))
+			    if (event.target.id != '_addtab') {
+				    tabstyle($(this));
+			    }
 				if (event.target.id == '_inlinetab') {
-					console.log(event.target.id);
+					//console.log(event.target.id);
 					g.activetab = event.target.id;					
-					top.window.history.replaceState(stateObj, name, '/' + g.uid + '/' + g.projectname + '/?run=edit');
-					swapeditors(true);
-					setEditor(g.contents)
-					console.log(g.inlinetabval)
+					top.window.history.replaceState(stateObj, name, '/' + g.uid + '/' + g.projectname + '/' + g.query);
+					swapeditors('inline');
+					g.inlineeditor.focus();
+					//console.log(g.inlinetabval)
 					slice();
 				} else {
 					if (event.target.id == '_addtab') {
 						$('#filelist').show();
 					} else if (event.target.id == '_html') {
 						g.activetab = event.target.id;
-						top.window.history.replaceState(stateObj, name, '/' + g.uid + '/' + g.projectname + '/?run=edit');
+						top.window.history.replaceState(stateObj, name, '/' + g.uid + '/' + g.projectname + '/' + g.query);
 						//console.log('2');
-						setEditor(g.contents)
-						swapeditors(false);					
+						seteditormode('index.html');
+						if (g.contents != editor.getValue()) {
+						    //console.log('test')
+    						setEditor(g.contents)
+		                	editor.gotoLine(0, 0);
+						}
+						swapeditors(false);			
+						editor.focus();
 					} else {
-						g.activetab = event.target.id;
-						top.window.history.replaceState(stateObj, name, g.activetab.replace('-', '.') + '?run=edit');
-						//console.log('edit 1')
-						editfile(g.currentprojectref, 'files', g.activetab)
-						swapeditors(false);					
+					   // console.log('file', event.target.name)
+					    if (event.target.name == 'global') {
+					        editglobalfile(projects, g.uid, 'global', event.target.id);
+					    } else {
+    						g.activetab = event.target.id;
+    						top.window.history.replaceState(stateObj, name, g.activetab.replace('-', '.') + g.query);
+    						//console.log('edit 1')
+    						editfile(g.currentprojectref, 'files', g.activetab)
+    						//swapeditors(false);	
+					    }
 					}
 				}
 			}
 		});
 		
+		function seteditormode(filename, edit) {
+		    if (!edit) {
+		        edit = editor;
+		    }
+		    let type = filename.replace(/^.*\.(.*)$/, "$1");
+        	if (type == 'js') {type = 'javascript'};
+        	if (type == 'htm' || type == 'settings') {type = 'html'};
+        	edit.session.setMode('ace/mode/' + type);
+		};
+		
 		$('.tabs').contextmenu(function (event) {
-			if (!event.shiftKey && event.target.className && event.target.id != '_html' && event.target.id != "_inlinetab"  && event.target.id != "_addtab" && event.target.id != "openeditlink") {
+			if (!event.shiftKey && event.target.className != 'tabs' && event.target.name != 'global' && event.target.id != '_html' && event.target.id != "_inlinetab"  && event.target.id != "_addtab" && event.target.id != "openeditlink") {
 				g.rightclicked = event.target.id.replace('-', '.');
 				event.preventDefault();
-				console.log(event.originalEvent);
+				//console.log(event.originalEvent);
 				$('#taboptions').css({'left': event.originalEvent.pageX, 'top': event.originalEvent.pageY});
 				$('#taboptions').attr('clicked', g.clicked);
 				$('#taboptions').show();
@@ -854,112 +1067,204 @@
 				$('#viewframe').attr('src', window.location.origin + '/' + g.uid + '/' + g.projectname + '/' + g.rightclicked);
 			} 
 			if (option == 'edittab') {
-				console.log(window.location.pathname);
+				//console.log(window.location.pathname);
 				window.open(window.location.origin + '/' + g.uid + '/' + g.projectname + '/' + g.rightclicked + '?run=edit');
 			}
 			if (option == 'delete') {
-				console.log(g.activetab, g.rightclicked);
-				if (g.activetab.replace('-', '.') == g.rightclicked) {
-					$('#_html').click();
-				}
-				$('#' + g.rightclicked.replace('.', '-')).remove();
-				alignlists();
-				g.fileref[g.rightclicked].child('archived').set(true);
-				g.fileref[g.rightclicked].off();
-				listfiles('files', $('#filelist'));
+				//console.log(g.activetab, g.rightclicked);
+                g.fileref[g.rightclicked].child('archived').set(true);
+                $('#' + g.rightclicked.replace('.', '-')).find('span.tabx').click();;
 			}
 			if (option == 'globalize') {
+			    console.log(g.rightclicked)
 				nametoref(projects, g.uid, 'global')
 				.then(function(globalref) {
+				    console.log(globalref.key);
 					return nametoref(globalref, 'files', g.rightclicked)
 					.then(function (globalfilesref) {
-						alert('A global file with that name already exists.');
+				        console.log(globalfilesref.key);
+						if (confirm('Making this file global will change the global file of the same name.')) {
+						    nametoref(g.currentprojectref, 'files', g.rightclicked)
+        				    .then(function (fileref) {
+        				        console.log(fileref.key);
+        				        return fileref.once('value');
+        				    })
+        				    .then(function (snapshot) {
+        				        console.log(snapshot.key, globalfilesref.key);
+        				        globalfilesref.set({name: snapshot.val().name, contents: snapshot.val().contents});
+                				$('#' + g.rightclicked.replace('.', '-')).find('span.tabx').click();;
+                				alignlists();
+                				g.fileref[g.rightclicked].child('archived').set(true);
+                				g.fileref[g.rightclicked].off();
+                    			listfiles('files', $('#filelist'), true);
+                    			loadfromfirebase('global', $('#globalfilelist'));
+                    			addtab('global_' + g.rightclicked, true);
+         				    })
+						}
 					})
 					.catch(function (err) {
-						console.log(g.rightclicked, g[g.rightclicked]);
+						console.log(err);
 						globalref.child('files').push({'name': g.rightclicked, 'contents': g[g.rightclicked]})
+        				$('#' + g.rightclicked.replace('.', '-')).find('span.tabx').click();;
+        				alignlists();
+        				g.fileref[g.rightclicked].child('archived').set(true);
+        				g.fileref[g.rightclicked].off();
+            			listfiles('files', $('#filelist'), true);
+            			loadfromfirebase('global', $('#globalfilelist'));
+            			addtab('global_' + g.rightclicked, true);
 					});
 				})
 			}
 			//delete g.rightclicked;
 		});
-		
+		 
 
 		function swapeditors(inline) {
-			let change = ($('#userbutton').height() + $('.tabs').height() + 40)
-			if (inline) {
-				$('#editor').css({'height': 0, 'width': window.innerWidth/2});				
-				$('#inlineeditor').css({'height': (window.innerHeight - change), 'width': window.innerWidth/2});				
-			} else {
-				$('#editor').css({'height': (window.innerHeight - change), 'width': window.innerWidth/2});				
-				$('#inlineeditor').css({'height': 0, 'width': window.innerWidth/2});									
+			let change = ($('#userbutton').height() + $('.tabs').height() + 10)
+			let width = window.innerWidth/2;
+			$('#editor').parent().css({'height': (window.innerHeight - change), 'width': window.innerWidth/2});			
+			if (g.query == '?run=editor') {
+			    width = window.innerWidth;
 			}
-
+			if (inline == 'inline') {
+			    //console.log('editor')
+				$('#editor').css({'height': 0, 'width': width});									
+				$('#inlineeditor').css({'height': (window.innerHeight - change), 'width': width});
+				$('[name=fileeditor]').css({'height': 0, 'width': width});
+				g.activeeditor = 'inline';
+			} else if (inline == false) {
+			    //console.log('inlineeditor')
+				$('#editor').css({'height': (window.innerHeight - change), 'width': width});				
+				$('#inlineeditor').css({'height': 0, 'width': width});									
+				$('[name=fileeditor]').css({'height': 0, 'width': width});
+				g.activeeditor = false;
+   			    editor.resize();
+                editor.commands.bindKeys({"ctrl-l":null})
+            } else if (inline != "_html") {
+			    //console.log('fileeditor')
+				$('#inlineeditor').css({'height': 0, 'width': width});									
+				$('[name=fileeditor]').css({'height': 0, 'width': width});
+				$('#editor').css({'height': 0, 'width': width});
+				//console.log($('#editor' + inline.replace('.', '-')), g.editor[inline])
+				$('#editor' + inline.replace('.', '-')).css({'height': (window.innerHeight - change), 'width': width});
+				$('#editor' + inline.replace('.', '-')).parent().css({'height': (window.innerHeight - change), 'width': width});
+ 				g.activeeditor = inline;
+   			    g.editor[inline].resize();
+                g.editor[inline].commands.bindKeys({"ctrl-l":null})
+ 			}
+		}
+		
+		function globaltolocal(contents, name) {
+		   // console.log(editor.getValue(), name);
+         	$('#' + name.replace('.', '-')).find('span.tabx').click();
+		    addfile(g.currentprojectref, 'files', contents, name.replace('global_', ''));
 		}
 		
 		g.fileref = {};
-		function editfile(ref, uid, name) {
+		function editfile(ref, uid, name, global) {
 			//console.log(uid, name);
 			name = name.replace('-', '.');
-			//console.log(g);
+            //console.log(g);
+			if (!g.editor[name]) {
+			    console.log('no editor');
+				let html = '<div name="fileeditor" id="editor' + name.replace('.', '-') + '"></div>'
+				$('#editor').after(html);
+    			g.editor[name] = ace.edit('editor' + name.replace('.', '-'))
+        		g.editor[name].setTheme("ace/theme/dawn");
+    	    	g.editor[name].session.setMode("ace/mode/html");
+ 	    		g.editor.firstime = true;
+       	    	if (global) {
+    	    		$(g.editor[name].textInput.getElement()).keyup(function (event) {
+    	        	    //console.log('editor', g.editor[name].getValue(), 'name', g[name]);
+                        if (confirm('Edit global file')) {
+                            g.demotedcursorpos = g.editor[name].getCursorPosition();
+                            g.demotededitorval = g.editor[name].getValue()
+                            console.log(g.demotedcursorpos);
+                            globaltolocal(g[name], name);
+                        }
+        	        	//console.log('editor', g.editor[name].getValue(), 'name', g[name]);
+    	    		    g.dirtyTime = Date.now();
+    	    		});
+    	    	} else {
+    	    		g.editor[name].on('change', function() {
+    	    		   g.dirtyTime = Date.now(); 
+    	    		});
+    	    	}
+	    		g.editor.firstime = true;
+			}
+			seteditormode(name, g.editor[name]);
 			if (g[name]) {				
-				//console.log('3');
-				setEditor(g[name]);
+				console.log('if g[name]');
+				if (g.editor[name].getValue() != g[name]) {
+    				g.editor[name].setValue(g[name]);
+				}
+	    		swapeditors(name);
+    			g.editor[name].focus();
 			} else {
-				//console.log(name)
-				nametoref(ref, uid, name)
+				console.log('else')
+				nametoref(ref, uid, name.replace('global_', ''))
 				.then(function(fileref) {
 					g.fileref[name] = fileref;
 					g.fileref[name].on('value', function(snapshot) {
 						let namecomp = name.replace('.', '-');
-						//console.log(namecomp, name, snapshot.val())
+						console.log('on file ref')
 						if (g[name] != snapshot.val().contents) {
-							if (g[name]) {
-								runproject(g.uid, g.projectname);
-							}
+							//console.log('on file contents', g.instance, snapshot.val().instance)
 							g[name] = snapshot.val().contents;
+							if (g[name]) {
+			            		$('#viewframe')[0].contentWindow.location.reload();
+							}
+							//console.log(g[name])
+							//console.log(g.editor[name].getValue())
 						}
-						if (editor.getValue() != g[name] && g.activetab == namecomp) {
-							//console.log(g[name])				
+						if (global || (g.editor[name].getValue() == '')) {
+							//console.log('on file editor', name)
 							//console.log('4');
-							setEditor(g[name]);
+		               		openeditor(g.editor[name], name, g[name]);
+		    				delete g.editor.firstime;
+						}
+						if (g.instance == snapshot.val().time && name == snapshot.val().instance.name) {
+						    console.log(name)
+						    console.log('file instance', g.instance, snapshot.val().instance)
+            				g.editor[name].setValue(g[name]);
+	        		        g.editor[name].selection.moveTo(0, 0);
 						}
 					});
 				});			
 			}
 		}
 		
-		function addtab(name) {
+		function openeditor(openeditor, name, contents) {
+		    if (g.demotededitorval) {
+		        contents = g.demotededitorval;
+		        delete g.demotededitorval;
+		    }
+		    openeditor.setValue(contents);
+		    if (g.demotedcursorpos) {
+		        openeditor.selection.moveTo(g.demotedcursorpos.row, g.demotedcursorpos.column);
+		        delete g.demotedcursorpos;
+		    } else {
+              	openeditor.selection.moveTo(0, 0);
+		    }
+       		openeditor.focus();
+		    swapeditors(name);
+		}
+		
+		function addtab(name, global) {
 			let idname = name.replace('.', "-")
 			if ($('#' + idname)[0]) {
 				$('#' + idname).click();
 			} else {
-				let html = '<button class="tab" id="' + idname + '">' + name + '<span class="tabx">x<span></button>'
+				let html = '<button title="Local File: ' + name + '" class="tab" id="' + idname + '">' + name + '<span class="tabx">x<span></button>'
+				if (global) {
+				    html = '<button title="Global File: ' + name.replace("global_", '') + '"  style="background-image: linear-gradient(45deg, #dcecf7 37.50%, #dbf1ff 37.50%, #dbf1ff 50%, #dcecf7 50%, #dcecf7 87.50%, #dbf1ff 87.50%, #dbf1ff 100%);background-size: 22.63px 22.63px;" name="global" class="tab" id="' + idname + '">' + name.replace("global_", '') + '<span class="tabx">x<span></button>'
+				}
 				$('#_addtab').before(html);
 				$("#" + idname).click();
 			} 
 			alignlists();
 		}
 			
-		function create(ref, uid, newcontents, name) {
-			if (!name) {
-				name = prompt("New project name?");	
-			}
-			name = checkname(name)
-			//console.log(name)
-			created = ref.child(uid).push({
-				contents: newcontents,
-				name: name,
-				lastchange: firebase.database.ServerValue.TIMESTAMP,
-				settings: {name: name,
-				ispublic: false,
-				archived: false,
-				readonly: false,}
-			})
-			top.window.history.pushState(stateObj, name, '../' + name + '/?run=edit');
-			top.window.location.reload();
-		}
-
 		function addfile(ref, uid, newcontents, name) {
 			let filelist = [];
 			if (!name) {
@@ -983,7 +1288,7 @@
 				lastchange: firebase.database.ServerValue.TIMESTAMP,
 			})
 			addtab(name);
-		}		
+		}	
 		
 		
 		function mangle(s) {
@@ -1016,6 +1321,7 @@
 		}
 
 		function slice() {
+			console.log("slice")
 			let lines = editor.session.doc.getAllLines();
 			let inlinetabname;
 			let startline;
@@ -1023,9 +1329,17 @@
 			for (let i = 0; i < lines.length; i++) {
 				//console.log('line:', i, lines[i]);
 				if (!startline) {
+				    //console.log('start', startline)
 					if (lines[i].includes('<script') && lines[i].includes('we-tab')) {
+					    if (lines[i].includes('text/markdown')) {
+					        console.log('markdown');
+					        //g.inlineeditor.getSession().setUseWrapMode(true);
+					        //g.inlineeditor.session.setOption("indentedSoftWrap", false)
+					    }
 						startline = i + 1;
-						[,,inlinetabname] = lines[i].match(/we-tab=(['"])(.*?)\1/);
+						if (lines[i].includes('we-tab=')) {
+						    [,,inlinetabname] = lines[i].match(/we-tab=(['"])(.*?)\1/);
+						}
 						//console.log(tabname);
 					}
 				} else {
@@ -1044,7 +1358,10 @@
 			for (let i = 0; i < g.inlinetabval.length - 1; i++) {
 				g.inlinetabval[i] = g.inlinetabval[i] + '\n';
 			}
-			g.inlineeditor.setValue(g.inlinetabval.join(""));
+			if (g.inlineeditor.getValue() != g.inlinetabval.join('')) {
+			    g.inlineeditor.setValue(g.inlinetabval.join(""));
+	    		g.inlineeditor.gotoLine(0, 0);
+			} else g.inlineeditor.resize();
 			//rebuild(startline, endline);
 			alignlists();
 		}
@@ -1054,7 +1371,7 @@
 			let lines = g.inlineeditor.session.doc.getAllLines();
 			let startline;
 			let endline;
-			//console.log(alllines, lines)
+			console.log("rebuild")
 			for (let i = 0; i < alllines.length; i++) {
 				if (!startline) {
 					if (alllines[i].includes('<script') && alllines[i].includes('we-tab')) {
@@ -1072,13 +1389,17 @@
 				alllines[i] = alllines[i] + '\n';
 			}
 			alllines.splice(alllines.length - 1, 1);
-			console.log('rebuild');
-			editor.setValue(alllines.join(''));
+			//console.log('rebuild');
+			if (editor.getValue() != alllines.join('')) {
+	    		editor.setValue(alllines.join(''));
+		    	editor.gotoLine(0, 0);
+			}
+			//editor.resize();
 		}
 		
 		editor.session.on('change', function() {
-			if (g.activetab == '_html' && editor.getValue() != g.contents) {
-				console.log('slice');
+			if (editor.getValue() != g.contents) {
+				//console.log('slice');
 				slice();
 			}
 			g.dirtyTime = Date.now();
@@ -1096,14 +1417,14 @@
 
 		g.inlineeditor.session.on('change', function() {
 			if (g.inlineeditor.getValue() != g.inlintabval && g.activetab == "_inlinetab") {
-				console.log('rebuild')
+				//console.log('rebuild')
 				rebuild()
 			}
 			g.dirtyTime = Date.now();
 		});
 		
 		$('#userbutton').click(function(event) {
-			console.log('userbutton');
+			//console.log('userbutton');
 			if (g.authuid) {
 
 			} else {
@@ -1120,7 +1441,7 @@
 				g.cookieId = getCook('cookieId');
 				g.authemail = user.email;
 				g.authuid = user.uid;
-				$('#userbutton').css({'background-color': 'white', 'border': 'none'});
+				$('#userbutton').css({'border': 'none'});
 				$('#userbutton').html('<div style="display: inline-block; color: #abcff5; margin-right: 5px;"><img style="border-radius: 50%; height: 38px; padding: 5px;" src="' + user.photoURL + '"></img><span class="glyphicon glyphicon-triangle-bottom"></span>');
 				root.child('cookieToUid').child(g.cookieId).set(g.authuid);
 				loadadmins(g.authuid);
@@ -1161,14 +1482,14 @@
 		function runproject(uid, projectname) {
 			console.log('run', uid, projectname)
 			if (g.query == '?run=edit') {
-				console.log('crashed', crashed_get(projectname))
+			//	console.log('crashed', crashed_get(projectname))
 				if (crashed_get(projectname)) {
 					$('#viewframe')[0].contentWindow.location = '?run=crashed';
 					return;
 				}			
 				crashed_set(projectname, true);
 				if (crash_timer_handle) clearTimeout(crash_timer_handle)	
-				crash_timer_handle = setTimeout(function () {crashed_set(projectname, false)}, 1000)
+				crash_timer_handle = setTimeout(function () {crashed_set(projectname, false)}, 500)
 				let src = '/' + uid + '/'  + projectname + '/';
 				let viewframe = $('#viewframe')[0];
 				if ($('#viewframe')[0].contentWindow.location.href == 'about:blank') {
@@ -1183,24 +1504,30 @@
 		
 		g.dirtyTime = null;
 		setInterval(function () {
-			if (g.dirtyTime && Date.now() - g.dirtyTime > 2000) {
+			if (g.dirtyTime && Date.now() - g.dirtyTime > 500) {
 				let name = g.activetab.replace('-', '.')
 				//console.log(name)
+				let comptime = Date.now();
 				g.dirtyTime = null;
 				if (editor.getValue() != g.contents && (g.activetab == '_html' || g.activetab == '_inlinetab')) {
 					console.log('firebaseprojectup');
 					//g.contents = editor.getValue();
+					g.instance = Date.now();
 					g.currentprojectref.update({
+						instance: {time: g.instance, name:"_html"},
 						contents: editor.getValue(),
 						lastchange: firebase.database.ServerValue.TIMESTAMP
 					});
-				} else if (editor.getValue() != g[g.activetab] && g.activetab != '_html' && g.activetab != '_addtab' && g.activetab != '_inlinetab') {
+				} else if (g.editor[name] && g.editor[name].getValue() != g[name] && g.activetab != '_html' && g.activetab != '_addtab' && g.activetab != '_inlinetab') {
 					console.log('firebasefileup', g.activetab);
-					//g[g.activetab] = editor.getValue();
+					//g[g.activetab] = g.editor[name].getValue();
 					nametoid(g.currentprojectref, 'files', name)
 					.then(function(fileid) {
+					    g.lastsave = g.editor[name].getValue();
+					    g.instance = Date.now();
 						g.currentprojectref.child('files').child(fileid).update({
-							contents: editor.getValue(),
+						    instance: {time: g.instance, name:name},
+							contents: g.editor[name].getValue(),
 							lastchange: firebase.database.ServerValue.TIMESTAMP						
 						})
 					});

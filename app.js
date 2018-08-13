@@ -67,6 +67,8 @@ app.post('/upload', function (req, res) {
 	uploadfile(req);
 });
 
+app.use(express.static('public'));
+
 app.use(function (req, res, next) {
 	//console.log('cookies1', req.url, g.cookieToUid)
 	if (!req.cookies || !req.cookies.cookieId) {
@@ -77,13 +79,19 @@ app.use(function (req, res, next) {
 	next();
 });
 
-app.use(express.static('html'));
 
 app.use(function (req, res) {
-	//console.log('cookies2', req.url, g.cookieToUid)
-	g.uid = g.cookieToUid[req.cookies.cookieId];
-	//console.log('0', req.cookies.cookieId, g.uid);
-	serve(req, res);
+	if (req.url == '/') {
+		findadminfile(projects, '0GZ6h7paIPSfwN6kvMqxv85p9XX2', 'homepage.html')
+		.then(function (file) {
+			res.send(file.contents);
+		});	
+	} else {
+		console.log('cookies2', req.url)
+		g.uid = g.cookieToUid[req.cookies.cookieId];
+		//console.log('0', req.cookies.cookieId, g.uid);
+		serve(req, res);
+	}
 });
 
 // Start the server
@@ -387,6 +395,7 @@ function createfilelist(ref, uid, projectname) {
 					Object.values(files).forEach(function (file) {
 						//console.log(snapshot.val());
 						delete file.contents;
+						delete file.instance;
 						//console.log('file', file)
 						results.push(file);							
 					});			
@@ -434,6 +443,26 @@ function findadminfile(ref, uid, filename) {
 	});
 }
 
+function create(res, uid, projectname, type) {
+	nametoref(projects, 'global', type)
+	.then(function (projectref) {
+		return projectref.once('value')
+	})
+	.then(function (snapshot) {
+		console.log('template', snapshot.val().contents);
+		projects.child(uid).push({
+			contents: snapshot.val().contents,
+			name: projectname,
+			lastchange: firebase.database.ServerValue.TIMESTAMP,
+			settings: {name: projectname,
+			ispublic: false,
+			archived: false,
+			readonly: false,}
+		})
+		res.redirect('?run=edit');
+	});
+}
+
 function serve(req, res) {
 	let query = req.query;
 	let [host, uid, projectname, filename] = req.path.split('/')
@@ -444,125 +473,129 @@ function serve(req, res) {
 	if (projectname.match(/^\./) && projectname != '.settings') {
 		[filename, projectname] = [projectname]
 	}
-	readable(projects, uid, projectname, filename)
-	.then(function (readable) {
-		//console.log('readable', readable, filename);
-		if (!readable) {
-			res.status(401);
-			res.send('Access denied');
-			return;
-		} else {
-			if (query.run == 'crashed') {
-				projects.child('0GZ6h7paIPSfwN6kvMqxv85p9XX2').child('-LEboYpzmQHHIb9ABL73').child('files' ).child('-LEbovEq_RODq0hVUfpP').once('value', function (snapshot) {
-					//console.log('toc');
-					res.send(snapshot.val().contents);
-				});				
-			} else if (filename == '.files.json' || filename == '.files') {
-				//console.log('252', projectname, filename);
-				createfilelist(projects, uid, projectname)
-				.then(function (files) {
-					//console.log('files', files);
-					res.send(files);
-				});
-			} else if (!projectname) {
-				if (query.run == 'download') {
-					download(res, uid)					
-				} else {
-					//console.log('TABLE OF CONTENTS');
-					projects.child('0GZ6h7paIPSfwN6kvMqxv85p9XX2').child('-LEboYpzmQHHIb9ABL73').child('files' ).child('-LFVYbMm1BjtqOW6vJpY').once('value', function (snapshot) {
+	if (query.template) {
+		create(res, uid, projectname, query.template);
+	} else {
+		readable(projects, uid, projectname, filename)
+		.then(function (readable) {
+			//console.log('readable', readable, filename);
+			if (!readable) {
+				res.status(401);
+				res.send('Access denied');
+				return;
+			} else {
+				if (query.run == 'crashed') {
+					projects.child('0GZ6h7paIPSfwN6kvMqxv85p9XX2').child('-LEboYpzmQHHIb9ABL73').child('files' ).child('-LEbovEq_RODq0hVUfpP').once('value', function (snapshot) {
 						//console.log('toc');
 						res.send(snapshot.val().contents);
+					});				
+				} else if (filename == '.files.json' || filename == '.files') {
+					console.log('252', projectname, filename);
+					createfilelist(projects, uid, projectname)
+					.then(function (files) {
+						//console.log('files', files);
+						res.send(files);
 					});
-				}
-			} else if (query.run == 'download') {
-				//console.log('DOWNLOAD PROJECT');
-				nametoid(projects, uid, projectname)
-				.then(function (nametoid) {
-					download(res, uid, nametoid, projectname)
-				});
-			} else if (query.run == 'viewer') {
-				projects.child('global').child('-LFApck9n3U1YdCYWKEA').child('files' ).child('-LFVCiLyPZucebTpYwog').once('value', function (snapshot) {
-					res.send(snapshot.val().contents);
-				});				
-			} else if (query.run == 'edit' || query.run == 'editor') {
-				findadminfile(projects, '0GZ6h7paIPSfwN6kvMqxv85p9XX2', 'editor.html')
-				.then(function (file) {					
-					console.log('edit');
-					nametoref(projects, uid, projectname)
-					.then(function(projectref) {
-						let timecode = Date.now();
-						//console.log(timecode);
-						//console.log('filename', filename);
-						if (!filename) filename = '_html';
-						//console.log('filename2', filename);
-						projectref.child('activetab').update({name: filename, instance: timecode});							
-						res.cookie('instance', timecode);
-						//res.sendFile('editor.html', { root: __dirname + '/html'});
-						//res.set('content-type', 'text/html');
-						res.send(file.contents);					
-					});
-				});
-			} else if (!filename) {
-				console.log('run', filename);
-				nametoref(projects, uid, projectname)
-				.then(projectref => projectref.once('value'))
-				.then(function (snapshot) {
-					if (true || !snapshot.val().settings.archived) {
-						res.send(snapshot.val().contents);
+				} else if (!projectname) {
+					if (query.run == 'download') {
+						download(res, uid)					
+					} else {
+						//console.log('TABLE OF CONTENTS');
+						projects.child('0GZ6h7paIPSfwN6kvMqxv85p9XX2').child('-LEboYpzmQHHIb9ABL73').child('files' ).child('-LFVYbMm1BjtqOW6vJpY').once('value', function (snapshot) {
+							//console.log('toc');
+							res.send(snapshot.val().contents);
+						});
 					}
-				});
-			} else if (filename) {
-				//console.log('DEPENDANCY');
-				if (query.create) {
-					createquery(res, projects, query, uid, projectname, filename)
-				} else {
-					let ref;
+				} else if (query.run == 'download') {
+					console.log('DOWNLOAD PROJECT');
+					nametoid(projects, uid, projectname)
+					.then(function (nametoid) {
+						download(res, uid, nametoid, projectname)
+					});
+				} else if (query.run == 'viewer') {
+					projects.child('global').child('-LFApck9n3U1YdCYWKEA').child('files' ).child('-LFVCiLyPZucebTpYwog').once('value', function (snapshot) {
+						res.send(snapshot.val().contents);
+					});				
+				} else if (query.run == 'edit' || query.run == 'editor') {
+					findadminfile(projects, '0GZ6h7paIPSfwN6kvMqxv85p9XX2', 'editor.html')
+					.then(function (file) {					
+						console.log('edit');
+						nametoref(projects, uid, projectname)
+						.then(function(projectref) {
+							let timecode = Date.now();
+							console.log(timecode);
+							console.log('filename', filename);
+							if (!filename) filename = '_html';
+							console.log('filename2', filename);
+							projectref.child('activetab').update({name: filename, instance: timecode});							
+							res.cookie('instance', timecode);
+							//res.sendFile('editor.html', { root: __dirname + '/html'});
+							//res.set('content-type', 'text/html');
+							res.send(file.contents);					
+						});
+					});
+				} else if (!filename) {
+					console.log('runfile', uid, projectname);
 					nametoref(projects, uid, projectname)
-					.then(function (projectref) {
-						ref = projectref;
-						nametoref(projectref, 'files', filename)
-						.then(function (fileref) {
-							fileref.once('value', function (snapshot) {
-								if (snapshot.val().archived) {								
-									checkglobalfiles(projects, uid, filename)
-									.then(function (file) {
-										console.log('global', file.name);
-										sendwithtype(res, projects, uid, projectname, file.name, file.contents);							
-									})
-								} else {
-									if (filename.charAt(0) != '.') {
-										console.log('local', uid, projectname, snapshot.val().name);
-										sendwithtype(res, projects, uid, projectname, snapshot.val().name, snapshot.val().contents);															
-									} else res.send(snapshot.val().contents);
-								}
-							});
-						})
-						.catch(function (err) {
-							checkglobalfiles(projects, uid, filename)
-							.then(function(file) {
-								console.log('global', file.name);
-								//sendwithtype(res, projects, uid, projectname, file.name, file.contents);	
-								res.send(file.contents)
+					.then(projectref => projectref.once('value'))
+					.then(function (snapshot) {
+						if (true || !snapshot.val().settings.archived) {
+							res.send(snapshot.val().contents);
+						}
+					})
+				} else if (filename) {
+					console.log('DEPENDANCY');
+					if (query.create) {
+						createquery(res, projects, query, uid, projectname, filename)
+					} else {
+						let ref;
+						nametoref(projects, uid, projectname)
+						.then(function (projectref) {
+							ref = projectref;
+							nametoref(projectref, 'files', filename)
+							.then(function (fileref) {
+								fileref.once('value', function (snapshot) {
+									if (snapshot.val().archived) {								
+										checkglobalfiles(projects, uid, filename)
+										.then(function (file) {
+											console.log('global', file.name);
+											sendwithtype(res, projects, uid, projectname, file.name, file.contents);							
+										})
+									} else {
+										if (filename.charAt(0) != '.') {
+											console.log('local', uid, projectname, snapshot.val().name);
+											sendwithtype(res, projects, uid, projectname, snapshot.val().name, snapshot.val().contents);															
+										} else res.send(snapshot.val().contents);
+									}
+								});
 							})
-							.catch(function(error) {
-								let file = bucket.file('/' + uid + '/' + projectname + '/' + filename);
-								let filereadstream = file.createReadStream();
-								filereadstream.pipe(res);
-								console.log('bucket', filename);
-								filereadstream.on('error', function (err2) {
-									console.log(err2);
-									console.log('buckert', uid, projectname, filename);
+							.catch(function (err) {
+								checkglobalfiles(projects, uid, filename)
+								.then(function(file) {
+									console.log('global', file.name);
+									//sendwithtype(res, projects, uid, projectname, file.name, file.contents);	
+									res.send(file.contents)
+								})
+								.catch(function(error) {
+									let file = bucket.file('/' + uid + '/' + projectname + '/' + filename);
+									let filereadstream = file.createReadStream();
+									filereadstream.pipe(res);
+									console.log('bucket', filename);
+									filereadstream.on('error', function (err2) {
+										console.log(err2);
+										console.log('buckert', uid, projectname, filename);
+									});
 								});
 							});
 						});
-					});
+					}
+				} else {
+					res.status(404)
+					res.send('Not found')			
 				}
-			} else {
-				res.status(404)
-				res.send('Not found')			
 			}
-		}
-	});
+		});
+	}
 }
 
 function createquery(res, ref, query, uid, projectname, filename) {
