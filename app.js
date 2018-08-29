@@ -342,15 +342,17 @@ function nametosnapshot(ref, uid, name) {
 	//console.log(uid, name);
 	return ref.child(uid).orderByChild('name').equalTo(name).once('value')
 	.then(function (snapshot) {
+		console.log(snapshot.key);
 		let result;
 		snapshot.forEach(function (snap) {
 			if (snap.val().settings) {
 				if (snap.val().settings.archived) return;
 			}
-			//console.log('key', snap.key)
+			console.log('key', snap.key)
 			result = snap;
 		});
 		if (!result) {
+			console.log('no snapshot');
 			throw 'ref not found';
 		}
 		//console.log('results', result.key, result.val());
@@ -362,6 +364,9 @@ function nametoid(ref, uid, name) {
 	return nametosnapshot(ref, uid, name)
 	.then(function (snapshot) {
 		return snapshot.key;
+	})
+	.catch(function(err) {
+		console.log('no id')
 	});
 }
 
@@ -369,6 +374,9 @@ function nametoobject(ref, uid, name) {
 	return nametosnapshot(ref, uid, name)
 	.then(function (snapshot) {
 		return snapshot.val();
+	})
+	.catch(function(err) {
+		console.log('no object')
 	});
 }
 
@@ -376,6 +384,9 @@ function nametoref(ref, uid, name) {
 	return nametosnapshot(ref, uid, name)
 	.then(function (snapshot) {
 		return snapshot.ref;
+	})
+	.catch(function(err) {
+		console.log('no ref')
 	});
 }
 
@@ -543,6 +554,10 @@ function serve(req, res) {
 							res.send(snapshot.val().contents);
 						}
 					})
+					.catch(function (err) {
+						res.status(404);
+						res.send('file not found');
+					});
 				} else if (filename) {
 					console.log('DEPENDANCY');
 					if (query.create) {
@@ -582,8 +597,9 @@ function serve(req, res) {
 									filereadstream.pipe(res);
 									console.log('bucket', filename);
 									filereadstream.on('error', function (err2) {
-										console.log(err2);
-										console.log('buckert', uid, projectname, filename);
+										//console.log(err2);
+										res.status(404)
+										console.log('filenotfound', uid, projectname, filename);
 									});
 								});
 							});
