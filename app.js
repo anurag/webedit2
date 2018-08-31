@@ -42,6 +42,7 @@ function updatecookietouid(snapshot) {
 	g.cookieToUid[snapshot.key] = snapshot.val();	
 }
 
+
 app.use((req, res, next) => {
 	//console.log('vhost', req.get('Host'));
 	if (PORT != 8081 && req.get('Host') == 'stage.nerq.com') {
@@ -62,10 +63,11 @@ app.use(cookieParser());
 
 app.use(favicon(__dirname + '/html/images/favicon.jpg'));
 
-app.post('/upload', function (req, res) {
+app.post('/upload', function (req, res, next) {
 	//console.log(req);
 	uploadfile(req);
 });
+
 
 app.use(express.static('public'));
 
@@ -103,7 +105,7 @@ app.listen(PORT, () => {
 
 
 function uploadfile(req) {
-	//console.log(req.files.file, req.body);
+	console.log(req.files.file, req.body);
 	let uploadedfile = req.files.file.data
 	let uid = req.body.uid;
 	let projectname = req.body.projectname;
@@ -117,7 +119,7 @@ function uploadfile(req) {
 		console.log(err)
 	});
 	gcstream.on('finish', () => {
-		console.log(filename)
+		console.log('finish', filename)
 	});
 	gcstream.end();
 }
@@ -455,6 +457,7 @@ function findadminfile(ref, uid, filename) {
 }
 
 function create(res, uid, projectname, type) {
+	console.log('type', type);
 	nametoref(projects, 'global', type)
 	.then(function (projectref) {
 		return projectref.once('value')
@@ -551,10 +554,15 @@ function serve(req, res) {
 					.then(projectref => projectref.once('value'))
 					.then(function (snapshot) {
 						if (true || !snapshot.val().settings.archived) {
+							if(req.path.slice(-1) != "/") {
+								res.redirect('/' + uid + '/' + snapshot.val().name + '/');
+							}
 							res.send(snapshot.val().contents);
+							res.end();
 						}
 					})
 					.catch(function (err) {
+						console.log('error', err);
 						res.status(404);
 						res.send('file not found');
 					});
@@ -599,6 +607,7 @@ function serve(req, res) {
 									filereadstream.on('error', function (err2) {
 										//console.log(err2);
 										res.status(404)
+										res.end('File not found');
 										console.log('filenotfound', uid, projectname, filename);
 									});
 								});
