@@ -55,6 +55,11 @@ app.use((req, res, next) => {
 		res.redirect('//' + req.get('Host') + ':8080');
 		return;
 	}
+	if (PORT != 8080 && req.get('Host') == 'webedit.app.render.com') {
+		console.log('vhosttru', req.get('Host'));
+		res.redirect('//' + req.get('Host') + ':10000');
+		return;
+	}
 	next();
 });
 
@@ -72,7 +77,7 @@ app.post('/upload', function (req, res, next) {
 app.use(express.static('public'));
 
 app.use(function (req, res, next) {
-	console.log('cookies1', req.url, g.cookieToUid)
+	//console.log('cookies1', req.url, g.cookieToUid)
 	if (!req.cookies || !req.cookies.cookieId) {
 		let cookieId = randomstring.generate();
 		//console.log('cookie, uid', g.uid, cookieId);
