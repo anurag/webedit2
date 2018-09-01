@@ -72,7 +72,7 @@ app.post('/upload', function (req, res, next) {
 app.use(express.static('public'));
 
 app.use(function (req, res, next) {
-	//console.log('cookies1', req.url, g.cookieToUid)
+	console.log('cookies1', req.url, g.cookieToUid)
 	if (!req.cookies || !req.cookies.cookieId) {
 		let cookieId = randomstring.generate();
 		//console.log('cookie, uid', g.uid, cookieId);
